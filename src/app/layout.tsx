@@ -3,6 +3,7 @@ import { Permanent_Marker, Caveat, Inter } from "next/font/google";
 import "./globals.css";
 import ClientBody from "./ClientBody";
 import Script from "next/script";
+import { Analytics } from '@vercel/analytics/next';
 
 const permanentMarker = Permanent_Marker({
     weight: "400",
