@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import {
     Tooltip,
     TooltipContent,
@@ -116,7 +117,14 @@ const sponsorPackages = [
 ];
 
 export default function Home() {
+    const cardDragX = useRef(0);
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isDragAnimating, setIsDragAnimating] = useState(false);
+    const dragStartX = useRef<number | null>(null);
+    const dragCurrentX = useRef<number | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
     const [currentPackage, setCurrentPackage] = useState(0);
+    const [direction, setDirection] = useState(1);
     const [formData, setFormData] = useState({
         artistName: "",
         email: "",
@@ -162,12 +170,81 @@ export default function Home() {
     };
 
     const nextPackage = () => {
+        setDirection(1);
         setCurrentPackage((prev) => (prev + 1) % sponsorPackages.length);
     };
 
     const prevPackage = () => {
+        setDirection(-1);
         setCurrentPackage((prev) => (prev - 1 + sponsorPackages.length) % sponsorPackages.length);
     };
+
+    const minSwipeDistance = 80;
+    const maxVisualDrag = 220;
+
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        dragStartX.current = e.clientX;
+        dragCurrentX.current = e.clientX;
+        cardDragX.current = 0;
+        setDragOffset(0);
+        setIsDragging(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
+    };
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isDragging || dragStartX.current === null) return;
+
+        dragCurrentX.current = e.clientX;
+
+        const rawOffset = e.clientX - dragStartX.current;
+        const limitedOffset = Math.max(-maxVisualDrag, Math.min(maxVisualDrag, rawOffset));
+
+        cardDragX.current = limitedOffset;
+        setDragOffset(limitedOffset);
+    };
+
+    const resetDragState = () => {
+        setIsDragging(false);
+        dragStartX.current = null;
+        dragCurrentX.current = null;
+        cardDragX.current = 0;
+    };
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        const finalOffset = cardDragX.current;
+
+        if (Math.abs(finalOffset) > minSwipeDistance) {
+            setIsDragAnimating(true);
+
+            if (finalOffset < 0) {
+                nextPackage();
+            } else {
+                prevPackage();
+            }
+        }
+
+        setDragOffset(0);
+        resetDragState();
+
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+    };
+
+    const handlePointerCancel = () => {
+        setDragOffset(0);
+        resetDragState();
+    };
+
+    useEffect(() => {
+        if (!isDragAnimating) return;
+
+        const timer = setTimeout(() => {
+            setIsDragAnimating(false);
+        }, 250);
+
+        return () => clearTimeout(timer);
+    }, [currentPackage, isDragAnimating]);
 
     return (
         <TooltipProvider delayDuration={0}>
@@ -193,7 +270,7 @@ export default function Home() {
                             alt="50 Gezichten 50 Gedichten"
                             width={600}
                             height={400}
-                            className="w-full h-auto"
+                            className="w-full h-auto transition-transform duration-300 hover:scale-[1.03]"
                             priority
                         />
                     </div>
@@ -228,10 +305,10 @@ export default function Home() {
 
                         {/* Desktop Roadmap - Zigzag Pattern */}
                         <div className="hidden lg:block">
-                            <div className="relative mx-auto w-full max-w-[1200px] h-[260px]">
+                            <div className="relative mx-auto w-full max-w-[1200px] h-[300px]">
                                 <svg
-                                    className="absolute inset-0 w-full h-full"
-                                    viewBox="0 0 1200 260"
+                                    className="absolute inset-0 w-full h-full overflow-visible"
+                                    viewBox="0 -40 1200 300"
                                     preserveAspectRatio="xMidYMid meet"
                                 >
                                     <path
@@ -258,30 +335,50 @@ export default function Home() {
                                         const isTop = index % 2 === 0;
 
                                         return (
-                                            <g key={item.title}>
-                                                <circle
-                                                    cx={point.x}
-                                                    cy={point.y}
-                                                    r="10"
-                                                    fill={item.active ? "black" : "white"}
-                                                    stroke="black"
-                                                    strokeWidth="3"
-                                                    className="cursor-pointer"
-                                                />
+                                            <Tooltip key={item.title}>
+                                                <TooltipTrigger asChild>
+                                                    <g
+                                                        className="cursor-pointer transition-all duration-200"
+                                                        style={{ transformBox: "fill-box", transformOrigin: "center" }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = "scale(1.1)";
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = "scale(1)";
+                                                        }}
+                                                    >
+                                                        <circle
+                                                            cx={point.x}
+                                                            cy={point.y}
+                                                            r="10"
+                                                            fill={item.active ? "black" : "white"}
+                                                            stroke="black"
+                                                            strokeWidth="3"
+                                                        />
 
-                                                <text
-                                                    x={point.x}
-                                                    y={isTop ? point.y + 42 : point.y + 52}
-                                                    textAnchor="middle"
-                                                    className="font-marker"
-                                                    style={{
-                                                        fontSize: "18px",
-                                                        fill: "black",
-                                                    }}
-                                                >
-                                                    {item.title}
-                                                </text>
-                                            </g>
+                                                        <text
+                                                            x={point.x}
+                                                            y={isTop ? point.y - 36 : point.y + 46}
+                                                            textAnchor="middle"
+                                                            className="font-marker"
+                                                            style={{
+                                                                fontSize: "19px",
+                                                                fill: "black",
+                                                            }}
+                                                        >
+                                                            {item.title}
+                                                        </text>
+                                                    </g>
+                                                </TooltipTrigger>
+
+                                                <TooltipContent>
+                                                    <div className="max-w-xs text-left">
+                                                        <p className="font-semibold">{item.title}</p>
+                                                        <p className="mt-1 text-sm">{item.description}</p>
+                                                        <p className="mt-2 text-xs opacity-80">{item.duration}</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         );
                                     })}
                                 </svg>
@@ -488,12 +585,12 @@ export default function Home() {
                         </p>
 
                         {/* Package Carousel */}
-                        <div className="relative">
-                            <div className="flex items-center justify-center gap-4 md:gap-8">
+                        <div className="relative mx-auto max-w-4xl">
+                            <div className="relative mx-auto w-full max-w-md">
                                 {/* Left Arrow */}
                                 <button
                                     onClick={prevPackage}
-                                    className="p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group"
+                                    className="absolute top-[235px] right-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10"
                                     aria-label="Vorig pakket"
                                 >
                                     <svg
@@ -506,51 +603,10 @@ export default function Home() {
                                     </svg>
                                 </button>
 
-                                {/* Package Card */}
-                                <div className="flex-1 max-w-md">
-                                    <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-8 shadow-lg">
-                                        {/* Placeholder image */}
-                                        <div className="w-full h-40 md:h-48 bg-gradient-to-br from-black/5 to-black/10 rounded-lg mb-6 flex items-center justify-center">
-                                            <span className="font-marker text-3xl md:text-4xl text-black/20">
-                                                {currentPackage + 1}
-                                            </span>
-                                        </div>
-
-                                        <h3 className="font-marker text-2xl md:text-3xl mb-2 text-center">
-                                            {sponsorPackages[currentPackage].title}
-                                        </h3>
-                                        <p className="text-xl md:text-2xl font-handwritten text-center mb-6 text-black/70">
-                                            {sponsorPackages[currentPackage].price}
-                                        </p>
-
-                                        <ul className="space-y-3">
-                                            {sponsorPackages[currentPackage].benefits.map((benefit, idx) => (
-                                                <li key={`benefit-${idx}`} className="flex items-start gap-3 text-sm md:text-base">
-                                                    <span className="text-black mt-1 flex-shrink-0">•</span>
-                                                    <span className="text-black/80">{benefit}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-
-                                    {/* Dots indicator */}
-                                    <div className="flex justify-center gap-2 mt-6">
-                                        {sponsorPackages.map((_, index) => (
-                                            <button
-                                                key={`dot-${index}`}
-                                                onClick={() => setCurrentPackage(index)}
-                                                className={`w-2 h-2 rounded-full transition-all ${index === currentPackage ? "bg-black w-6" : "bg-black/30"
-                                                    }`}
-                                                aria-label={`Ga naar pakket ${index + 1}`}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
                                 {/* Right Arrow */}
                                 <button
                                     onClick={nextPackage}
-                                    className="p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group"
+                                    className="absolute top-[235px] left-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10"
                                     aria-label="Volgend pakket"
                                 >
                                     <svg
@@ -562,6 +618,83 @@ export default function Home() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
                                 </button>
+
+                                {/* Package Card */}
+                                <div
+                                    className={`w-full touch-pan-y select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                                    onPointerDown={handlePointerDown}
+                                    onPointerMove={handlePointerMove}
+                                    onPointerUp={handlePointerUp}
+                                    onPointerCancel={handlePointerCancel}
+                                >
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={currentPackage}
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{
+                                                opacity: isDragging
+                                                    ? Math.max(0.45, 1 - Math.abs(dragOffset) / 260)
+                                                    : 1,
+                                                x: isDragging ? dragOffset : 0,
+                                                y: 0,
+                                                rotate: isDragging ? dragOffset / 40 : 0,
+                                                scale: isDragging ? 0.985 : 1,
+                                            }}
+                                            exit={{
+                                                opacity: 0,
+                                                y: -8,
+                                                x: isDragAnimating ? (direction > 0 ? -80 : 80) : 0,
+                                            }}
+                                            transition={{
+                                                type: isDragging ? "tween" : "spring",
+                                                duration: isDragging ? 0.02 : 0.25,
+                                                stiffness: 300,
+                                                damping: 30,
+                                            }}
+                                            style={{ touchAction: "pan-y" }}
+                                        >
+                                            <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-8 shadow-lg">
+                                                <div className="w-full h-40 md:h-48 bg-gradient-to-br from-black/5 to-black/10 rounded-lg mb-6 flex items-center justify-center">
+                                                    <span className="font-marker text-3xl md:text-4xl text-black/20">
+                                                        {currentPackage + 1}
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="font-marker text-2xl md:text-3xl mb-2 text-center">
+                                                    {sponsorPackages[currentPackage].title}
+                                                </h3>
+                                                <p className="text-xl md:text-2xl font-handwritten text-center mb-6 text-black/70">
+                                                    {sponsorPackages[currentPackage].price}
+                                                </p>
+
+                                                <ul className="space-y-3">
+                                                    {sponsorPackages[currentPackage].benefits.map((benefit, idx) => (
+                                                        <li key={`benefit-${idx}`} className="flex items-start gap-3 text-sm md:text-base">
+                                                            <span className="text-black mt-1 flex-shrink-0">•</span>
+                                                            <span className="text-black/80">{benefit}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </motion.div>
+                                    </AnimatePresence>
+
+                                    {/* Dots indicator */}
+                                    <div className="flex justify-center gap-2 mt-6">
+                                        {sponsorPackages.map((_, index) => (
+                                            <button
+                                                key={`dot-${index}`}
+                                                onClick={() => {
+                                                    setDirection(index > currentPackage ? 1 : -1);
+                                                    setCurrentPackage(index);
+                                                }}
+                                                className={`w-2 h-2 rounded-full transition-all ${index === currentPackage ? "bg-black w-6" : "bg-black/30"
+                                                    }`}
+                                                aria-label={`Ga naar pakket ${index + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
