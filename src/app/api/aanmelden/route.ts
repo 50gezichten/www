@@ -1,48 +1,46 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-export async function POST(req: Request) {
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
+
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
+
+export async function POST(request: Request) {
     try {
-        const apiKey = process.env.RESEND_API_KEY;
+        const body = await request.json();
 
-        if (!apiKey) {
-            console.error("RESEND_API_KEY ontbreekt");
-            return NextResponse.json(
-                { error: "Serverconfiguratie mist RESEND_API_KEY." },
-                { status: 500 }
-            );
-        }
-
-        const resend = new Resend(apiKey);
-
-        const { artistName, email, phone, instagram, tiktok } = await req.json();
+        const { artistName, email, phone, instagram, tiktok } = body;
 
         if (!artistName || !email || !phone) {
             return NextResponse.json(
-                { error: "Vul artiestennaam, email en telefoonnummer in." },
+                { error: "Missing required fields" },
                 { status: 400 }
             );
         }
 
-        await resend.emails.send({
-            from: "info@50gezichten.nl",
-            to: "50gezichten@gmail.com",
-            subject: `Nieuwe aanmelding: ${artistName}`,
-            replyTo: email,
-            text: `
-Artiestennaam: ${artistName}
-Emailadres: ${email}
-Telefoonnummer: ${phone}
-Instagram: ${instagram || "-"}
-TikTok: ${tiktok || "-"}
-      `.trim(),
+        const { error } = await supabaseServer.from("submissions").insert({
+            artist_name: artistName,
+            email,
+            phone,
+            instagram: instagram || null,
+            tiktok: tiktok || null,
         });
 
-        return NextResponse.json({ success: true });
+        if (error) {
+            console.error("Supabase insert error:", error);
+            return NextResponse.json(
+                { error: "Failed to save submission" },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({ ok: true });
     } catch (error) {
-        console.error(error);
+        console.error("Route error:", error);
         return NextResponse.json(
-            { error: "Er ging iets mis bij het verzenden." },
+            { error: "Invalid request" },
             { status: 500 }
         );
     }
