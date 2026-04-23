@@ -104,7 +104,7 @@ const sponsorPackages = [
         ],
     },
     {
-        title: "ALLY MAXIMUM",
+        title: "ALLY MAXERS",
         price: "Vanaf €2.500",
         image: "/img/sponsor/04.png",
         benefits: [
