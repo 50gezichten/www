@@ -697,7 +697,7 @@ export default function Home() {
                                 {/* Left Arrow */}
                                 <button
                                     onClick={prevPackage}
-                                    className="absolute top-[235px] right-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10"
+                                    className="hidden md:flex absolute top-[235px] right-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10 items-center justify-center"
                                     aria-label="Vorig pakket"
                                 >
                                     <svg
@@ -713,7 +713,7 @@ export default function Home() {
                                 {/* Right Arrow */}
                                 <button
                                     onClick={nextPackage}
-                                    className="absolute top-[235px] left-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10"
+                                    className="hidden md:flex absolute top-[235px] left-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10 items-center justify-center"
                                     aria-label="Volgend pakket"
                                 >
                                     <svg
@@ -884,7 +884,7 @@ export default function Home() {
                 <footer className="py-8 border-t border-black/10">
                     <div className="max-w-6xl mx-auto px-4 text-center">
                         <p className="text-sm text-black/50">
-                            © 2026 50 Gezichten 50 Gedichten - Izhia Arts - Juiced Unicorn - Stichting Dutch Urban Arts - Almere
+                            © 2026 - 50 Gezichten 50 Gedichten - Izhia Arts - Juiced Unicorn - Stichting Dutch Urban Arts - Almere
                         </p>
                     </div>
                 </footer>
