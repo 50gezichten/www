@@ -87,3 +87,20 @@ html {
 .roadmap-item-offset {
     margin-top: 0;
 }
+
+/* Custom Logo Pointer 50G */
+a,
+button,
+.cursor-pointer,
+.cursor-grab,
+.cursor-grabbing {
+    cursor: url("/cursors/cursor-hover.png") 16 16, pointer;
+}
+
+a:active,
+button:active,
+.cursor-pointer:active,
+.cursor-grab:active,
+.cursor-grabbing:active {
+    cursor: url("/cursors/cursor-active.png") 16 16, pointer;
+}
