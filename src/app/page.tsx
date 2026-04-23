@@ -67,6 +67,7 @@ const sponsorPackages = [
     {
         title: "ALLY INSTAPPERS",
         price: "Vanaf €250",
+        image: "/img/sponsor/01.png",
         benefits: [
             "2 boeken bij de release",
             "Een display om te plaatsen in je winkel als supporter",
@@ -77,6 +78,7 @@ const sponsorPackages = [
     {
         title: "ALLY KERN SUPPORTERS",
         price: "Vanaf €500",
+        image: "/img/sponsor/02.png",
         benefits: [
             "4 boeken bij de release",
             "Een display om te plaatsen in je winkel als supporter",
@@ -89,6 +91,7 @@ const sponsorPackages = [
     {
         title: "ALLY UPPERS",
         price: "Vanaf €1.000",
+        image: "/img/sponsor/03.png",
         benefits: [
             "4 boeken bij de release",
             "Een handgemaakte display om te plaatsen in je winkel als supporter",
@@ -103,6 +106,7 @@ const sponsorPackages = [
     {
         title: "ALLY MAXIMUM",
         price: "Vanaf €2.500",
+        image: "/img/sponsor/04.png",
         benefits: [
             "8 boeken bij de release",
             "Een handgemaakte speciale display om te plaatsen in je winkel als supporter",
@@ -117,6 +121,7 @@ const sponsorPackages = [
 ];
 
 export default function Home() {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const cardDragX = useRef(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragAnimating, setIsDragAnimating] = useState(false);
@@ -251,15 +256,117 @@ export default function Home() {
             <main className="min-h-screen bg-white">
                 {/* Navigation */}
                 <nav className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm z-50 border-b border-black/10">
-                    <div className="max-w-6xl mx-auto px-4 py-3">
+                    {/* Desktop / tablet menu */}
+                    <div className="hidden md:block max-w-6xl mx-auto px-4 py-3">
                         <ul className="flex justify-center gap-6 md:gap-10 text-sm md:text-base font-medium">
-                            <li><a href="#over-ons" className="hover:underline underline-offset-4 transition-all">Over Ons</a></li>
-                            <li><a href="#roadmap" className="hover:underline underline-offset-4 transition-all">Roadmap</a></li>
-                            <li><a href="#aanmelden" className="hover:underline underline-offset-4 transition-all">Aanmelden</a></li>
-                            <li><a href="#support" className="hover:underline underline-offset-4 transition-all">Support</a></li>
-                            <li><a href="#contact" className="hover:underline underline-offset-4 transition-all">Contact</a></li>
+                            <li>
+                                <a href="#over-ons" className="hover:underline underline-offset-4 transition-all">
+                                    Over Ons
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#roadmap" className="hover:underline underline-offset-4 transition-all">
+                                    Roadmap
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#aanmelden" className="hover:underline underline-offset-4 transition-all">
+                                    Aanmelden
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#support" className="hover:underline underline-offset-4 transition-all">
+                                    Support
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#contact" className="hover:underline underline-offset-4 transition-all">
+                                    Contact
+                                </a>
+                            </li>
                         </ul>
                     </div>
+
+                    {/* Mobile floating hamburger */}
+                    <div className="md:hidden fixed top-4 right-4 z-[60]">
+                        <button
+                            type="button"
+                            aria-label={mobileMenuOpen ? "Sluit menu" : "Open menu"}
+                            aria-expanded={mobileMenuOpen}
+                            onClick={() => setMobileMenuOpen((prev) => !prev)}
+                            className="w-12 h-12 rounded-full bg-white border-2 border-black shadow-lg flex items-center justify-center"
+                        >
+                            <div className="relative w-5 h-5">
+                                <span
+                                    className={`absolute left-0 top-1 block h-0.5 w-5 bg-black transition-all ${mobileMenuOpen ? "rotate-45 top-2.5" : ""
+                                        }`}
+                                />
+                                <span
+                                    className={`absolute left-0 top-2.5 block h-0.5 w-5 bg-black transition-all ${mobileMenuOpen ? "opacity-0" : ""
+                                        }`}
+                                />
+                                <span
+                                    className={`absolute left-0 top-4 block h-0.5 w-5 bg-black transition-all ${mobileMenuOpen ? "-rotate-45 top-2.5" : ""
+                                        }`}
+                                />
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* Mobile dropdown / overlay */}
+                    {mobileMenuOpen && (
+                        <div className="md:hidden fixed inset-0 z-[55] bg-black/20 backdrop-blur-[2px]">
+                            <div className="absolute top-20 right-4 w-64 rounded-2xl border-2 border-black bg-white shadow-2xl p-4">
+                                <ul className="flex flex-col gap-3 text-base font-medium">
+                                    <li>
+                                        <a
+                                            href="#over-ons"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                                        >
+                                            Over Ons
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="#roadmap"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                                        >
+                                            Roadmap
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="#aanmelden"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                                        >
+                                            Aanmelden
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="#support"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                                        >
+                                            Support
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="#contact"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                                        >
+                                            Contact
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    )}
                 </nav>
 
                 {/* Hero Section with Logo */}
@@ -654,10 +761,13 @@ export default function Home() {
                                             style={{ touchAction: "pan-y" }}
                                         >
                                             <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-8 shadow-lg">
-                                                <div className="w-full h-40 md:h-48 bg-gradient-to-br from-black/5 to-black/10 rounded-lg mb-6 flex items-center justify-center">
-                                                    <span className="font-marker text-3xl md:text-4xl text-black/20">
-                                                        {currentPackage + 1}
-                                                    </span>
+                                                <div className="w-full h-40 md:h-48 rounded-lg mb-6 overflow-hidden relative">
+                                                    <Image
+                                                        src={sponsorPackages[currentPackage].image}
+                                                        alt={sponsorPackages[currentPackage].title}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
                                                 </div>
 
                                                 <h3 className="font-marker text-2xl md:text-3xl mb-2 text-center">
