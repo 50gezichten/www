@@ -77,13 +77,13 @@ html {
 
 /* Roadmap zigzag heights */
 .roadmap-container {
-    height: 280px;
+    height: 260px;
 }
 
 .roadmap-svg {
-    height: 400px;
+    height: 260px;
 }
 
 .roadmap-item-offset {
-    margin-top: 120px;
+    margin-top: 0;
 }
