@@ -104,7 +104,7 @@ const sponsorPackages = [
         ],
     },
     {
-        title: "ALLY MAXERS",
+        title: "ALLY MAXIMUM",
         price: "Vanaf €2.500",
         image: "/img/sponsor/04.png",
         benefits: [
@@ -394,7 +394,7 @@ export default function Home() {
                         </h2>
                         <div className="space-y-6 text-base md:text-lg leading-relaxed text-black/80">
                             <p>
-                                <span className="font-handwritten text-2xl">50 Gezichten, 50 Gedichten</span> is een unieke Almeerse gedichtenbundel waarin hiphop en poëzie met elkaar worden verbonden. Vijftig rappers uit Almere, jong en oud, leveren elk een tekst voor de bundel. Rapteksten worden meestal gehoord in combinatie met beats, maar ze zijn ook op zichzelf staande stukjes kunst. Dit project is zowel een literaire publicatie als een cultureel portret van Almere: een hedendaags stuk cultureel erfgoed dat de geschiedenis van vijftig jaar stad weergeeft.
+                                <span className="font-handwritten text-2xl">50 Gezichten, 50 Gedichten</span> is een unieke Almeerse gedichtenbundel waarin hiphop en poëzie met elkaar worden verbonden. Vijftig rappers uit Almere — jong en oud — leveren elk een tekst voor de bundel. Rapteksten worden meestal gehoord in combinatie met beats, maar ze zijn ook op zichzelf staande stukjes kunst. Dit project is zowel een literaire publicatie als een cultureel portret van Almere: een hedendaags stuk cultureel erfgoed dat de geschiedenis van vijftig jaar stad weergeeft.
                             </p>
                             <p>
                                 Wij geloven dat kunst voor iedereen toegankelijk moet zijn. Daarom wordt de bundel gratis beschikbaar gesteld via de Almeerse bibliotheken en op onze website. De fysieke bundels worden verspreid tijdens een lanceringsavond in De Nieuwe Bibliotheek Almere, waar rappers hun gedichten live voordragen. Hopelijk is deze bundel pas het begin van een nieuwe traditie van culturele werken waar elke Almeerder trots op kan zijn.
