@@ -228,91 +228,125 @@ export default function Home() {
 
                         {/* Desktop Roadmap - Zigzag Pattern */}
                         <div className="hidden lg:block">
-                            <div className="relative">
-                                {/* SVG Path for zigzag line */}
+                            <div className="relative mx-auto w-full max-w-[1200px] h-[260px]">
                                 <svg
-                                    className="absolute top-0 left-0 w-full h-full pointer-events-none roadmap-svg"
-                                    viewBox="0 0 1200 400"
-                                    preserveAspectRatio="none"
+                                    className="absolute inset-0 w-full h-full"
+                                    viewBox="0 0 1200 260"
+                                    preserveAspectRatio="xMidYMid meet"
                                 >
                                     <path
-                                        d="M 75 80 L 225 200 L 375 80 L 525 200 L 675 80 L 825 200 L 975 80 L 1125 200"
+                                        d="M 75 40 L 225 160 L 375 40 L 525 160 L 675 40 L 825 160 L 975 40 L 1125 160"
                                         fill="none"
                                         stroke="rgba(0,0,0,0.15)"
                                         strokeWidth="2"
                                         strokeDasharray="8 4"
                                     />
-                                </svg>
 
-                                {/* Milestone points */}
-                                <div className="relative flex justify-between items-start roadmap-container">
                                     {roadmapItems.map((item, index) => {
+                                        const points = [
+                                            { x: 75, y: 40 },
+                                            { x: 225, y: 160 },
+                                            { x: 375, y: 40 },
+                                            { x: 525, y: 160 },
+                                            { x: 675, y: 40 },
+                                            { x: 825, y: 160 },
+                                            { x: 975, y: 40 },
+                                            { x: 1125, y: 160 },
+                                        ];
+
+                                        const point = points[index];
                                         const isTop = index % 2 === 0;
+
                                         return (
-                                            <div
-                                                key={item.title}
-                                                className={`flex flex-col items-center w-[12.5%] ${isTop ? "" : "roadmap-item-offset"}`}
-                                            >
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className="cursor-pointer group flex flex-col items-center">
-                                                            <div
-                                                                className={`w-5 h-5 rounded-full border-[3px] transition-all duration-300 group-hover:scale-150 ${item.active
-                                                                        ? "bg-black border-black"
-                                                                        : "bg-white border-black group-hover:bg-black"
-                                                                    }`}
-                                                            />
-                                                            <p className="mt-3 text-center font-handwritten text-base lg:text-lg leading-tight group-hover:underline underline-offset-4 max-w-[120px]">
-                                                                {item.title}
-                                                            </p>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent
-                                                        side={isTop ? "bottom" : "top"}
-                                                        className="max-w-xs bg-black text-white p-4 rounded-xl shadow-2xl border-0"
-                                                    >
-                                                        <p className="font-semibold mb-2 text-sm">{item.title}</p>
-                                                        <p className="text-sm text-white/90 mb-2">{item.description}</p>
-                                                        <p className="text-xs text-white/70 italic">{item.duration}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </div>
+                                            <g key={item.title}>
+                                                <circle
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r="10"
+                                                    fill={item.active ? "black" : "white"}
+                                                    stroke="black"
+                                                    strokeWidth="3"
+                                                    className="cursor-pointer"
+                                                />
+
+                                                <text
+                                                    x={point.x}
+                                                    y={isTop ? point.y + 42 : point.y + 52}
+                                                    textAnchor="middle"
+                                                    className="font-marker"
+                                                    style={{
+                                                        fontSize: "18px",
+                                                        fill: "black",
+                                                    }}
+                                                >
+                                                    {item.title}
+                                                </text>
+                                            </g>
                                         );
                                     })}
-                                </div>
+                                </svg>
                             </div>
                         </div>
 
                         {/* Tablet Roadmap */}
                         <div className="hidden md:block lg:hidden">
                             <div className="grid grid-cols-4 gap-8">
-                                {roadmapItems.map((item, index) => (
-                                    <div key={item.title} className="flex flex-col items-center text-center">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <div className="cursor-pointer group flex flex-col items-center">
+                                {roadmapItems.map((item, index) => {
+                                    const points = [
+                                        { x: 75, y: 40 },
+                                        { x: 225, y: 160 },
+                                        { x: 375, y: 40 },
+                                        { x: 525, y: 160 },
+                                        { x: 675, y: 40 },
+                                        { x: 825, y: 160 },
+                                        { x: 975, y: 40 },
+                                        { x: 1125, y: 160 },
+                                    ];
+
+                                    const point = points[index];
+                                    const isTop = index % 2 === 0;
+
+                                    return (
+                                        <div key={item.title}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
                                                     <div
-                                                        className={`w-5 h-5 rounded-full border-[3px] transition-all duration-300 group-hover:scale-125 ${item.active
-                                                                ? "bg-black border-black"
-                                                                : "bg-white border-black group-hover:bg-black"
-                                                            }`}
-                                                    />
-                                                    <p className="mt-3 font-handwritten text-lg group-hover:underline underline-offset-4">
-                                                        {item.title}
-                                                    </p>
-                                                </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent
-                                                side="bottom"
-                                                className="max-w-xs bg-black text-white p-4 rounded-xl shadow-2xl border-0"
+                                                        className="absolute cursor-pointer group"
+                                                        style={{
+                                                            left: `${point.x}px`,
+                                                            top: `${point.y}px`,
+                                                            transform: "translate(-50%, -50%)",
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className={`w-5 h-5 rounded-full border-[3px] transition-all duration-300 group-hover:scale-150 ${item.active ? "bg-black border-black" : "bg-white border-black"
+                                                                }`}
+                                                        />
+                                                    </div>
+                                                </TooltipTrigger>
+
+                                                <TooltipContent>
+                                                    <div className="max-w-xs text-left">
+                                                        <p className="font-semibold">{item.title}</p>
+                                                        <p className="mt-1 text-sm">{item.description}</p>
+                                                        <p className="mt-2 text-xs opacity-80">{item.duration}</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <div
+                                                className="absolute whitespace-nowrap font-marker text-xl"
+                                                style={{
+                                                    left: `${point.x}px`,
+                                                    top: isTop ? `${point.y + 28}px` : `${point.y + 28}px`,
+                                                    transform: "translateX(-50%)",
+                                                }}
                                             >
-                                                <p className="font-semibold mb-2 text-sm">{item.title}</p>
-                                                <p className="text-sm text-white/90 mb-2">{item.description}</p>
-                                                <p className="text-xs text-white/70 italic">{item.duration}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </div>
-                                ))}
+                                                {item.title}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
