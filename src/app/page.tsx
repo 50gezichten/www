@@ -253,7 +253,7 @@ export default function Home() {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <main className="min-h-screen bg-white">
+            <main className="min-h-screen bg-white overflow-x-hidden">
                 {/* Navigation */}
                 <nav className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm z-50 border-b border-black/10">
                     {/* Desktop / tablet menu */}
