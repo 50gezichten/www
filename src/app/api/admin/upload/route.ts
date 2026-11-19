@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin, supabaseServer } from "@/lib/supabase-server";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -38,27 +38,46 @@ export async function POST(request: NextRequest) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const uploadDir = path.join(process.cwd(), "public", "uploads");
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
         const ext = path.extname(file.name) || ".png";
         const cleanName = path.basename(file.name, ext).replace(/[^a-zA-Z0-9-_]/g, "");
         const uniqueId = crypto.randomBytes(4).toString("hex");
         const filename = `${cleanName}-${uniqueId}${ext}`;
-        const filePath = path.join(uploadDir, filename);
 
-        fs.writeFileSync(filePath, buffer);
+        const client = supabaseAdmin || supabaseServer;
 
-        const publicUrl = `/uploads/${filename}`;
-        return NextResponse.json({
-            ok: true,
-            url: publicUrl,
-            filename,
-            size: file.size,
-            type: file.type,
-        });
+        // 1. Upload to Supabase Storage if configured
+        if (client) {
+            const { data: uploadData, error: uploadError } = await client.storage
+                .from("media")
+                .upload(filename, buffer, {
+                    contentType: file.type,
+                    upsert: true,
+                });
+
+            if (!uploadError && uploadData) {
+                const { data: publicUrlData } = client.storage
+                    .from("media")
+                    .getPublicUrl(filename);
+
+                return NextResponse.json({
+                    ok: true,
+                    url: publicUrlData.publicUrl,
+                    filename,
+                    size: file.size,
+                    type: file.type,
+                });
+            } else if (uploadError) {
+                console.warn("[Supabase Storage Error]", uploadError.message);
+            }
+        }
+
+        // 2. If Supabase Storage is not active or failed, return clear configuration error
+        return NextResponse.json(
+            {
+                error: "Permanente media-opslag vereist een geconfigureerde Supabase Storage bucket ('media'). Voer de SQL migratie uit in Supabase.",
+            },
+            { status: 503 }
+        );
     } catch (err) {
         console.error("[Upload Error]", err);
         return NextResponse.json(

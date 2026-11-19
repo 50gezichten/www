@@ -58,12 +58,13 @@ export async function POST(request: NextRequest) {
             message: "Aanmelding succesvol ontvangen en opgeslagen.",
         });
     } catch (error) {
-        console.error(
-            "[Aanmelden API Error]",
-            error instanceof Error ? error.message : "Onbekende fout"
-        );
+        const errorMsg =
+            error instanceof Error
+                ? error.message
+                : "Er is een serverfout opgetreden bij het verwerken van de aanmelding.";
+        console.error("[Aanmelden API Error]", errorMsg);
         return NextResponse.json(
-            { error: "Er is een serverfout opgetreden. Probeer het later opnieuw." },
+            { error: errorMsg },
             { status: 500 }
         );
     }

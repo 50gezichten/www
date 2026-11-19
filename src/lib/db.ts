@@ -1,7 +1,5 @@
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
-import { supabaseServer } from "./supabase-server";
+import { supabaseAdmin, supabaseServer, isSupabaseConfigured } from "./supabase-server";
 import {
     AuditLogEntry,
     NotificationJob,
@@ -17,72 +15,11 @@ import {
 } from "./default-data";
 import { sendSubmissionNotification } from "./email";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
-const STORE_FILE = path.join(DATA_DIR, "cms_store.json");
-
-interface DataStore {
-    submissions: Submission[];
-    notificationJobs: NotificationJob[];
-    publishedContent: SiteContent;
-    draftContent: SiteContent;
-    contentHistory: SiteContent[];
-    roadmapItems: RoadmapItem[];
-    sponsorPackages: SponsorPackage[];
-    auditLogs: AuditLogEntry[];
-}
-
-function ensureDataStore(): DataStore {
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+function getClient(requireAdmin = false) {
+    if (requireAdmin) {
+        return supabaseAdmin || supabaseServer;
     }
-
-    if (!fs.existsSync(STORE_FILE)) {
-        const initialStore: DataStore = {
-            submissions: [],
-            notificationJobs: [],
-            publishedContent: initialSiteContent,
-            draftContent: { ...initialSiteContent, status: "draft" },
-            contentHistory: [initialSiteContent],
-            roadmapItems: initialRoadmapItems,
-            sponsorPackages: initialSponsorPackages,
-            auditLogs: [
-                {
-                    id: "init-1",
-                    action: "SYSTEM_INIT",
-                    entity: "store",
-                    actor_id: "system",
-                    actor_name: "System",
-                    details: "Initialized database and fallback store with default content",
-                    timestamp: new Date().toISOString(),
-                },
-            ],
-        };
-        fs.writeFileSync(STORE_FILE, JSON.stringify(initialStore, null, 2), "utf-8");
-        return initialStore;
-    }
-
-    try {
-        const content = fs.readFileSync(STORE_FILE, "utf-8");
-        return JSON.parse(content);
-    } catch {
-        return {
-            submissions: [],
-            notificationJobs: [],
-            publishedContent: initialSiteContent,
-            draftContent: { ...initialSiteContent, status: "draft" },
-            contentHistory: [initialSiteContent],
-            roadmapItems: initialRoadmapItems,
-            sponsorPackages: initialSponsorPackages,
-            auditLogs: [],
-        };
-    }
-}
-
-function saveStore(store: DataStore) {
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), "utf-8");
+    return supabaseServer;
 }
 
 function generateReference(): string {
@@ -102,12 +39,20 @@ export async function createSubmission(payload: {
     instagram?: string | null;
     tiktok?: string | null;
 }) {
-    const store = ensureDataStore();
-    const reference = generateReference();
-    const now = new Date().toISOString();
-    const submissionId = crypto.randomUUID();
+    const client = getClient(true);
+    if (!client) {
+        console.error("[DB Error] Geen Supabase database geconfigureerd voor permanente opslag.");
+        throw new Error(
+            "Database niet geconfigureerd. Neem contact op met de organisatie via 50gezichten@gmail.com."
+        );
+    }
 
-    const submission: Submission = {
+    const reference = generateReference();
+    const submissionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    // 1. Permanent save to Supabase PostgreSQL submissions table
+    const { error: insertError } = await client.from("submissions").insert({
         id: submissionId,
         reference,
         artist_name: payload.artistName,
@@ -115,62 +60,48 @@ export async function createSubmission(payload: {
         phone: payload.phone,
         instagram: payload.instagram || null,
         tiktok: payload.tiktok || null,
-        created_at: now,
         status: "new",
         email_notification_status: "pending",
-    };
-
-    // 1. Try Supabase insert if client is available
-    let savedToSupabase = false;
-    if (supabaseServer) {
-        try {
-            const { error } = await supabaseServer.from("submissions").insert({
-                id: submissionId,
-                reference,
-                artist_name: payload.artistName,
-                email: payload.email,
-                phone: payload.phone,
-                instagram: payload.instagram || null,
-                tiktok: payload.tiktok || null,
-                status: "new",
-                email_notification_status: "pending",
-            });
-            if (!error) {
-                savedToSupabase = true;
-            } else {
-                console.warn("[DB] Supabase insert failed:", error.code, error.message);
-            }
-        } catch (err) {
-            console.warn("[DB] Supabase connection error:", err instanceof Error ? err.message : err);
-        }
-    }
-
-    // 2. Always persist locally to prevent ANY data loss
-    store.submissions.unshift(submission);
-
-    // 3. Create notification job
-    const jobId = crypto.randomUUID();
-    const notificationJob: NotificationJob = {
-        id: jobId,
-        submission_id: submissionId,
-        reference,
-        recipient: process.env.NOTIFICATION_EMAIL_TO || "50gezichten@gmail.com",
-        subject: `Nieuwe aanmelding 50 Gezichten 50 Gedichten: ${payload.artistName}`,
-        payload: {
-            ...payload,
-            reference,
-            submittedAt: new Date().toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam" }),
-        },
-        status: "processing",
-        attempts: 1,
-        max_attempts: 3,
         created_at: now,
         updated_at: now,
-    };
-    store.notificationJobs.unshift(notificationJob);
-    saveStore(store);
+    });
 
-    // 4. Dispatch Email via Resend
+    if (insertError) {
+        console.error("[DB Insert Error]", insertError.code, insertError.message);
+        throw new Error(
+            `Fout bij permanente opslag in database: ${insertError.message || "Onbekende databasefout"}`
+        );
+    }
+
+    // 2. Persist notification job in Supabase
+    const jobId = crypto.randomUUID();
+    const submittedAtFormatted = new Date().toLocaleString("nl-NL", {
+        timeZone: "Europe/Amsterdam",
+    });
+
+    try {
+        await client.from("notification_jobs").insert({
+            id: jobId,
+            submission_id: submissionId,
+            reference,
+            recipient: process.env.NOTIFICATION_EMAIL_TO || "50gezichten@gmail.com",
+            subject: `Nieuwe aanmelding 50 Gezichten 50 Gedichten: ${payload.artistName}`,
+            payload: {
+                ...payload,
+                reference,
+                submittedAt: submittedAtFormatted,
+            },
+            status: "processing",
+            attempts: 1,
+            max_attempts: 3,
+            created_at: now,
+            updated_at: now,
+        });
+    } catch (err) {
+        console.warn("[DB Warning] Kon notification_job niet aanmaken:", err);
+    }
+
+    // 3. Dispatch Email via Resend
     const emailResult = await sendSubmissionNotification({
         artistName: payload.artistName,
         email: payload.email,
@@ -178,51 +109,51 @@ export async function createSubmission(payload: {
         instagram: payload.instagram,
         tiktok: payload.tiktok,
         reference,
-        submittedAt: notificationJob.payload.submittedAt,
+        submittedAt: submittedAtFormatted,
     });
 
-    // 5. Update submission and job status
-    const storeAfterEmail = ensureDataStore();
-    const subIdx = storeAfterEmail.submissions.findIndex((s) => s.id === submissionId);
-    const jobIdx = storeAfterEmail.notificationJobs.findIndex((j) => j.id === jobId);
+    // 4. Update status in Supabase
+    try {
+        if (emailResult.success) {
+            await client
+                .from("submissions")
+                .update({
+                    email_notification_status: "sent",
+                    email_message_id: emailResult.messageId || null,
+                    email_notification_sent_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", submissionId);
 
-    if (emailResult.success) {
-        if (subIdx !== -1) {
-            storeAfterEmail.submissions[subIdx].email_notification_status = "sent";
-            storeAfterEmail.submissions[subIdx].email_message_id = emailResult.messageId;
-            storeAfterEmail.submissions[subIdx].email_notification_sent_at = new Date().toISOString();
-        }
-        if (jobIdx !== -1) {
-            storeAfterEmail.notificationJobs[jobIdx].status = "sent";
-            storeAfterEmail.notificationJobs[jobIdx].updated_at = new Date().toISOString();
-        }
+            await client
+                .from("notification_jobs")
+                .update({
+                    status: "sent",
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", jobId);
+        } else {
+            await client
+                .from("submissions")
+                .update({
+                    email_notification_status: "failed",
+                    email_notification_error: emailResult.error || "Verzenden mislukt",
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", submissionId);
 
-        if (savedToSupabase && supabaseServer) {
-            try {
-                await supabaseServer
-                    .from("submissions")
-                    .update({
-                        email_notification_status: "sent",
-                        email_message_id: emailResult.messageId,
-                    })
-                    .eq("id", submissionId);
-            } catch {
-                // Ignore background sync errors
-            }
+            await client
+                .from("notification_jobs")
+                .update({
+                    status: "failed",
+                    last_error: emailResult.error || "Verzenden mislukt",
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", jobId);
         }
-    } else {
-        if (subIdx !== -1) {
-            storeAfterEmail.submissions[subIdx].email_notification_status = "failed";
-            storeAfterEmail.submissions[subIdx].email_notification_error = emailResult.error;
-        }
-        if (jobIdx !== -1) {
-            storeAfterEmail.notificationJobs[jobIdx].status = "failed";
-            storeAfterEmail.notificationJobs[jobIdx].last_error = emailResult.error;
-            storeAfterEmail.notificationJobs[jobIdx].updated_at = new Date().toISOString();
-        }
+    } catch {
+        // Silently catch background status update errors
     }
-
-    saveStore(storeAfterEmail);
 
     return {
         success: true,
@@ -233,27 +164,44 @@ export async function createSubmission(payload: {
 }
 
 export async function getSubmissions(): Promise<Submission[]> {
-    if (supabaseServer) {
-        try {
-            const { data, error } = await supabaseServer
-                .from("submissions")
-                .select("*")
-                .order("created_at", { ascending: false });
-            if (!error && data) {
-                return data;
-            }
-        } catch {
-            // fallback
-        }
+    const client = getClient(true);
+    if (!client) {
+        console.warn("[DB Warning] Supabase niet geconfigureerd voor getSubmissions.");
+        return [];
     }
-    const store = ensureDataStore();
-    return store.submissions;
+
+    const { data, error } = await client
+        .from("submissions")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("[DB Error] Fout bij ophalen submissions:", error.message);
+        return [];
+    }
+
+    return (data as Submission[]) || [];
 }
 
 export async function retryNotification(submissionId: string) {
-    const store = ensureDataStore();
-    const sub = store.submissions.find((s) => s.id === submissionId);
-    if (!sub) return { success: false, error: "Aanmelding niet gevonden" };
+    const client = getClient(true);
+    if (!client) {
+        return { success: false, error: "Database niet geconfigureerd" };
+    }
+
+    const { data: sub, error } = await client
+        .from("submissions")
+        .select("*")
+        .eq("id", submissionId)
+        .single();
+
+    if (error || !sub) {
+        return { success: false, error: "Aanmelding niet gevonden in database" };
+    }
+
+    const submittedAtFormatted = new Date(sub.created_at).toLocaleString("nl-NL", {
+        timeZone: "Europe/Amsterdam",
+    });
 
     const emailResult = await sendSubmissionNotification({
         artistName: sub.artist_name,
@@ -262,19 +210,32 @@ export async function retryNotification(submissionId: string) {
         instagram: sub.instagram,
         tiktok: sub.tiktok,
         reference: sub.reference,
-        submittedAt: new Date(sub.created_at).toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam" }),
+        submittedAt: submittedAtFormatted,
     });
 
+    const now = new Date().toISOString();
     if (emailResult.success) {
-        sub.email_notification_status = "sent";
-        sub.email_message_id = emailResult.messageId;
-        sub.email_notification_sent_at = new Date().toISOString();
-        sub.email_notification_error = null;
+        await client
+            .from("submissions")
+            .update({
+                email_notification_status: "sent",
+                email_message_id: emailResult.messageId || null,
+                email_notification_sent_at: now,
+                email_notification_error: null,
+                updated_at: now,
+            })
+            .eq("id", submissionId);
     } else {
-        sub.email_notification_status = "failed";
-        sub.email_notification_error = emailResult.error;
+        await client
+            .from("submissions")
+            .update({
+                email_notification_status: "failed",
+                email_notification_error: emailResult.error || "Onbekende fout",
+                updated_at: now,
+            })
+            .eq("id", submissionId);
     }
-    saveStore(store);
+
     return emailResult;
 }
 
@@ -283,95 +244,272 @@ export async function retryNotification(submissionId: string) {
 // -------------------------------------------------------------
 
 export async function getSiteContent(previewDraft = false): Promise<SiteContent> {
-    const store = ensureDataStore();
-    return previewDraft ? store.draftContent : store.publishedContent;
+    const client = getClient(false);
+    if (!client) {
+        return previewDraft ? { ...initialSiteContent, status: "draft" } : initialSiteContent;
+    }
+
+    try {
+        const statusToFetch = previewDraft ? "draft" : "published";
+        const { data, error } = await client
+            .from("site_content")
+            .select("*")
+            .eq("status", statusToFetch)
+            .order("version", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error || !data) {
+            // If draft requested but no draft in DB, try published or default
+            if (previewDraft) {
+                const { data: pubData } = await client
+                    .from("site_content")
+                    .select("*")
+                    .eq("status", "published")
+                    .order("version", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (pubData) return pubData as SiteContent;
+            }
+            return previewDraft
+                ? { ...initialSiteContent, status: "draft" }
+                : initialSiteContent;
+        }
+
+        return data as SiteContent;
+    } catch {
+        return previewDraft ? { ...initialSiteContent, status: "draft" } : initialSiteContent;
+    }
 }
 
-export async function updateDraftContent(content: Partial<SiteContent>, actor: string) {
-    const store = ensureDataStore();
-    store.draftContent = {
-        ...store.draftContent,
-        ...content,
-        version: store.publishedContent.version + 1,
+export async function updateDraftContent(
+    content: Partial<SiteContent>,
+    actor: string
+): Promise<SiteContent> {
+    const client = getClient(true);
+    if (!client) {
+        throw new Error("Supabase is niet geconfigureerd voor CMS content-updates.");
+    }
+
+    const currentPublished = await getSiteContent(false);
+    const newVersion = (currentPublished.version || 1) + 1;
+    const now = new Date().toISOString();
+
+    const draftData: SiteContent = {
+        id: "content-draft",
+        version: newVersion,
         status: "draft",
-        updated_at: new Date().toISOString(),
+        hero: content.hero || currentPublished.hero,
+        about: content.about || currentPublished.about,
+        aanmelden: content.aanmelden || currentPublished.aanmelden,
+        support: content.support || currentPublished.support,
+        contact: content.contact || currentPublished.contact,
+        footer: content.footer || currentPublished.footer,
+        updated_at: now,
         updated_by: actor,
     };
-    store.auditLogs.unshift({
-        id: crypto.randomUUID(),
+
+    const { error } = await client
+        .from("site_content")
+        .upsert(draftData, { onConflict: "id" });
+
+    if (error) {
+        console.error("[DB Error] Fout bij opslaan concept content:", error.message);
+        throw new Error(`Fout bij opslaan concept in database: ${error.message}`);
+    }
+
+    await addAuditLog({
         action: "UPDATE_DRAFT",
         entity: "content",
+        entity_id: "content-draft",
         actor_id: actor,
-        details: "Concept websitecontent bijgewerkt",
-        timestamp: new Date().toISOString(),
+        details: `Concept websitecontent bijgewerkt naar v${newVersion}`,
     });
-    saveStore(store);
-    return store.draftContent;
+
+    return draftData;
 }
 
-export async function publishContent(actor: string) {
-    const store = ensureDataStore();
-    const newPublished: SiteContent = {
-        ...store.draftContent,
+export async function publishContent(actor: string): Promise<SiteContent> {
+    const client = getClient(true);
+    if (!client) {
+        throw new Error("Supabase is niet geconfigureerd voor publiceren.");
+    }
+
+    const draft = await getSiteContent(true);
+    const now = new Date().toISOString();
+
+    const publishedData: SiteContent = {
+        ...draft,
+        id: "content-prod",
         status: "published",
-        updated_at: new Date().toISOString(),
+        updated_at: now,
         updated_by: actor,
     };
-    store.publishedContent = newPublished;
-    store.contentHistory.unshift(newPublished);
-    store.auditLogs.unshift({
-        id: crypto.randomUUID(),
+
+    const { error } = await client
+        .from("site_content")
+        .upsert(publishedData, { onConflict: "id" });
+
+    if (error) {
+        console.error("[DB Error] Fout bij publiceren content:", error.message);
+        throw new Error(`Fout bij live publiceren in database: ${error.message}`);
+    }
+
+    await addAuditLog({
         action: "PUBLISH_CONTENT",
         entity: "content",
+        entity_id: "content-prod",
         actor_id: actor,
-        details: `Versie ${newPublished.version} gepubliceerd naar live website`,
-        timestamp: new Date().toISOString(),
+        details: `Versie ${publishedData.version} live gepubliceerd naar website`,
     });
-    saveStore(store);
-    return newPublished;
+
+    return publishedData;
 }
 
 export async function getRoadmapItems(): Promise<RoadmapItem[]> {
-    const store = ensureDataStore();
-    return store.roadmapItems.filter((i) => !i.archived).sort((a, b) => a.order_index - b.order_index);
+    const client = getClient(false);
+    if (!client) {
+        return initialRoadmapItems;
+    }
+
+    try {
+        const { data, error } = await client
+            .from("roadmap_items")
+            .select("*")
+            .eq("archived", false)
+            .order("order_index", { ascending: true });
+
+        if (error || !data || data.length === 0) {
+            return initialRoadmapItems;
+        }
+
+        return data as RoadmapItem[];
+    } catch {
+        return initialRoadmapItems;
+    }
 }
 
-export async function saveRoadmapItems(items: RoadmapItem[], actor: string) {
-    const store = ensureDataStore();
-    store.roadmapItems = items;
-    store.auditLogs.unshift({
-        id: crypto.randomUUID(),
+export async function saveRoadmapItems(
+    items: RoadmapItem[],
+    actor: string
+): Promise<RoadmapItem[]> {
+    const client = getClient(true);
+    if (!client) {
+        throw new Error("Supabase is niet geconfigureerd voor roadmap-updates.");
+    }
+
+    const { error } = await client.from("roadmap_items").upsert(items, { onConflict: "id" });
+
+    if (error) {
+        console.error("[DB Error] Fout bij opslaan roadmap:", error.message);
+        throw new Error(`Fout bij opslaan roadmap in database: ${error.message}`);
+    }
+
+    await addAuditLog({
         action: "UPDATE_ROADMAP",
         entity: "roadmap",
         actor_id: actor,
         details: `${items.length} roadmap-fases bijgewerkt/geordend`,
-        timestamp: new Date().toISOString(),
     });
-    saveStore(store);
-    return store.roadmapItems;
+
+    return items;
 }
 
 export async function getSponsorPackages(): Promise<SponsorPackage[]> {
-    const store = ensureDataStore();
-    return store.sponsorPackages.filter((p) => !p.archived).sort((a, b) => a.order_index - b.order_index);
+    const client = getClient(false);
+    if (!client) {
+        return initialSponsorPackages;
+    }
+
+    try {
+        const { data, error } = await client
+            .from("sponsor_packages")
+            .select("*")
+            .eq("archived", false)
+            .order("order_index", { ascending: true });
+
+        if (error || !data || data.length === 0) {
+            return initialSponsorPackages;
+        }
+
+        return data as SponsorPackage[];
+    } catch {
+        return initialSponsorPackages;
+    }
 }
 
-export async function saveSponsorPackages(packages: SponsorPackage[], actor: string) {
-    const store = ensureDataStore();
-    store.sponsorPackages = packages;
-    store.auditLogs.unshift({
-        id: crypto.randomUUID(),
+export async function saveSponsorPackages(
+    packages: SponsorPackage[],
+    actor: string
+): Promise<SponsorPackage[]> {
+    const client = getClient(true);
+    if (!client) {
+        throw new Error("Supabase is niet geconfigureerd voor sponsor-updates.");
+    }
+
+    const { error } = await client.from("sponsor_packages").upsert(packages, { onConflict: "id" });
+
+    if (error) {
+        console.error("[DB Error] Fout bij opslaan sponsorpakketten:", error.message);
+        throw new Error(`Fout bij opslaan sponsorpakketten in database: ${error.message}`);
+    }
+
+    await addAuditLog({
         action: "UPDATE_SPONSORS",
         entity: "sponsors",
         actor_id: actor,
         details: `${packages.length} sponsorpakketten bijgewerkt/geordend`,
-        timestamp: new Date().toISOString(),
     });
-    saveStore(store);
-    return store.sponsorPackages;
+
+    return packages;
 }
 
 export async function getAuditLogs(): Promise<AuditLogEntry[]> {
-    const store = ensureDataStore();
-    return store.auditLogs;
+    const client = getClient(true);
+    if (!client) {
+        return [];
+    }
+
+    try {
+        const { data, error } = await client
+            .from("audit_logs")
+            .select("*")
+            .order("timestamp", { ascending: false })
+            .limit(50);
+
+        if (error || !data) {
+            return [];
+        }
+
+        return data as AuditLogEntry[];
+    } catch {
+        return [];
+    }
+}
+
+export async function addAuditLog(entry: {
+    action: string;
+    entity: string;
+    entity_id?: string;
+    actor_id: string;
+    actor_name?: string;
+    details?: string;
+}) {
+    const client = getClient(true);
+    if (!client) return;
+
+    try {
+        await client.from("audit_logs").insert({
+            id: crypto.randomUUID(),
+            action: entry.action,
+            entity: entry.entity,
+            entity_id: entry.entity_id || null,
+            actor_id: entry.actor_id,
+            actor_name: entry.actor_name || entry.actor_id,
+            details: entry.details || null,
+            timestamp: new Date().toISOString(),
+        });
+    } catch {
+        // Silently ignore audit log write failures
+    }
 }
