@@ -1,46 +1,69 @@
-import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { NextRequest, NextResponse } from "next/server";
+import { validateSubmission } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { createSubmission } from "@/lib/db";
 
-import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
-
-import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        // 1. Antispam: Rate Limiting
+        const ip =
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+            request.headers.get("x-real-ip") ||
+            "127.0.0.1";
 
-        const { artistName, email, phone, instagram, tiktok } = body;
-
-        if (!artistName || !email || !phone) {
+        const rateLimit = checkRateLimit(ip, 5, 10 * 60 * 1000); // 5 submissions per 10 mins
+        if (!rateLimit.allowed) {
             return NextResponse.json(
-                { error: "Missing required fields" },
+                {
+                    error: "Te veel aanmeldingen verstuurd vanaf dit netwerk. Probeer het over een kwartier opnieuw.",
+                },
+                { status: 429 }
+            );
+        }
+
+        // 2. Parse body safely
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Ongeldige gegevens ontvangen" },
                 { status: 400 }
             );
         }
 
-        const { error } = await supabaseServer.from("submissions").insert({
-            artist_name: artistName,
-            email,
-            phone,
-            instagram: instagram || null,
-            tiktok: tiktok || null,
-        });
+        // 3. Validation & Honeypot
+        const validation = validateSubmission(body);
+        if (!validation.valid) {
+            // If honeypot triggered, return 200 without saving to deter bots silently
+            if (validation.errors.bot) {
+                return NextResponse.json({ ok: true, reference: "50G-CONFIRMED" });
+            }
 
-        if (error) {
-            console.error("Supabase insert error:", error);
             return NextResponse.json(
-                { error: "Failed to save submission" },
-                { status: 500 }
+                {
+                    error: "Validatiefout bij het invullen van het formulier",
+                    details: validation.errors,
+                },
+                { status: 400 }
             );
         }
 
-        return NextResponse.json({ ok: true });
+        // 4. Save submission & trigger email notification
+        const result = await createSubmission(validation.sanitized);
+
+        return NextResponse.json({
+            ok: true,
+            reference: result.reference,
+            message: "Aanmelding succesvol ontvangen en opgeslagen.",
+        });
     } catch (error) {
-        console.error("Route error:", error);
+        console.error(
+            "[Aanmelden API Error]",
+            error instanceof Error ? error.message : "Onbekende fout"
+        );
         return NextResponse.json(
-            { error: "Invalid request" },
+            { error: "Er is een serverfout opgetreden. Probeer het later opnieuw." },
             { status: 500 }
         );
     }
