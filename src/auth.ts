@@ -12,9 +12,46 @@ declare module "next-auth" {
     }
 }
 
-const defaultAdminIds = ["278548191", "346629474", "265046697"];
+interface GitHubProfileLike {
+    id?: number | string;
+    login?: string;
+    [key: string]: unknown;
+}
+
+/**
+ * Checks whether a GitHub profile or user ID is authorized based exclusively
+ * on the ADMIN_GITHUB_IDS environment variable.
+ * Returns true if allowed, false otherwise.
+ */
+export function isAllowedAdmin(
+    profile?: GitHubProfileLike | null,
+    userId?: string | null
+): boolean {
+    const rawAdminIds = process.env.ADMIN_GITHUB_IDS;
+    if (!rawAdminIds || !rawAdminIds.trim()) {
+        return false;
+    }
+
+    const allowedIds = rawAdminIds
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+    if (allowedIds.length === 0) {
+        return false;
+    }
+
+    const profileGithubId = profile?.id != null ? String(profile.id) : (userId ? String(userId) : null);
+    const profileLogin = typeof profile?.login === "string" ? profile.login.toLowerCase() : null;
+
+    const idMatches = profileGithubId ? allowedIds.includes(profileGithubId) : false;
+    const loginMatches = profileLogin ? allowedIds.map((c) => c.toLowerCase()).includes(profileLogin) : false;
+
+    return idMatches || loginMatches;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    trustHost: true,
     providers: [
         GitHub({
             clientId: process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID,
@@ -42,21 +79,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 return false;
             }
 
-            const configuredIds = process.env.ADMIN_GITHUB_IDS
-                ? process.env.ADMIN_GITHUB_IDS.split(",").map((s) => s.trim())
-                : defaultAdminIds;
-
-            const profileGithubId = profile?.id ? String(profile.id) : user.id;
-            const profileLogin = (profile?.login as string)?.toLowerCase();
-
-            // Check against numeric stable GitHub ID or configured usernames
-            const isAuthorized =
-                (profileGithubId ? configuredIds.includes(profileGithubId) : false) ||
-                (profileLogin ? configuredIds.map((c) => c.toLowerCase()).includes(profileLogin) : false);
+            const isAuthorized = isAllowedAdmin(profile as GitHubProfileLike | undefined, user?.id);
 
             if (!isAuthorized) {
+                const profileGithubId = profile?.id != null ? String(profile.id) : user?.id;
                 console.warn(
-                    `[Auth] Unauthorized GitHub sign-in attempt: ID=${profileGithubId}, username=${profileLogin}`
+                    `[Auth] Unauthorized GitHub sign-in attempt: ID=${profileGithubId || "unknown"}`
                 );
                 return false;
             }
@@ -88,5 +116,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         strategy: "jwt",
         maxAge: 24 * 60 * 60, // 24 hours
     },
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "50gezichten-development-auth-secret-change-in-prod-32c",
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 });

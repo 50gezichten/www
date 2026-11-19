@@ -84,7 +84,7 @@ export default async function InstellingenPage() {
                             Geautoriseerde GitHub Admin User-IDs
                         </span>
                         <div className="p-3 bg-black/5 rounded-lg font-mono text-xs break-all">
-                            {process.env.ADMIN_GITHUB_IDS || "278548191, 346629474, 265046697"}
+                            {process.env.ADMIN_GITHUB_IDS || "Niet geconfigureerd (toegang geweigerd)"}
                         </div>
                         <p className="text-xs text-black/50 mt-1">
                             Alleen accounts waarvan het GitHub profiel-ID in deze allowlist staat krijgen toegang tot /admin.

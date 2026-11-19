@@ -2,6 +2,26 @@
 
 Alle belangrijke technische wijzigingen, herstellingen en toevoegingen aan het project worden in dit document vastgelegd volgens de richtlijnen van Masterprompt V2.
 
+## [Unreleased] - 2026-11-20
+
+### Auth.js Beveiligingsherstel: Strikt Toegangsbeheer & Verwijderen Vaste Geheimen
+- **Standaardbeheerders fallback geëlimineerd:**
+  - Vaste lijst `defaultAdminIds = ["278548191", "346629474", "265046697"]` in `src/auth.ts` volledig verwijderd.
+  - Toegang wordt uitsluitend en strict bepaald door de omgevingsvariabele `ADMIN_GITHUB_IDS`.
+  - Indien `ADMIN_GITHUB_IDS` ontbreekt, leeg is of slechts witruimte bevat, wordt aanmelden per direct geweigerd (geen onbedoelde toegang).
+  - Ondersteuning voor stabiele numerieke GitHub-gebruikers-ID's en case-insensitieve logins.
+  - Nooit logging van geheime sleutels of tokens.
+- **Hardcoded AUTH_SECRET-fallback verwijderd:**
+  - Hardcoded development-secret (`"50gezichten-development-auth-secret-change-in-prod-32c"`) in `src/auth.ts` volledig verwijderd.
+  - Authenticatie leunt uitsluitend op `process.env.AUTH_SECRET` (of `process.env.NEXTAUTH_SECRET`).
+  - Bij een ontbrekende of lege sleutel faalt de authenticatie veilig (`MissingSecret` / HTTP 500 zonder fallback).
+- **OAuth-configuratie & Vercel Preview Hostdetectie:**
+  - `trustHost: true` expliciet toegevoegd aan `NextAuth` opties ter voorkoming van `UntrustedHost`-fouten achter dynamische Vercel Preview-URL's.
+  - Bevestigd dat de OAuth callbackroute op Auth.js `/api/auth/callback/github` is en correct wordt afgehandeld door `src/app/api/auth/[...nextauth]/route.ts`.
+  - Instellingenpagina (`src/app/admin/instellingen/page.tsx`) bijgewerkt zodat er geen oude standaardaccounts als fallback worden gepresenteerd wanneer `ADMIN_GITHUB_IDS` niet is ingesteld.
+- **Testdekking:**
+  - Nieuwe gerichte testsuite toegevoegd in `tests/auth_security.test.ts` met 16 geautomatiseerde validaties (allowlist, edge cases, type checks, statische secret audit en runtime OAuth handlers).
+
 ## [Unreleased] - 2026-11-19
 
 ### Vercel Preview Herstel: Permanente Supabase Opslag & Volledig Verwijderen Lokale JSON-Store
