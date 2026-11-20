@@ -172,6 +172,38 @@ test("generateSubmissionNotificationEmailText behoudt de exacte plattetekstversi
     assert.ok(text.includes("https://50gezichten.nl/admin"));
 });
 
+test("generateSubmissionNotificationEmailHtml gebruikt het nieuwe onderwerpformaat 'Nieuwe Aanmelding: [Artiestennaam]'", () => {
+    const params: SendSubmissionEmailParams = {
+        artistName: "MC Almere",
+        email: "mcalmere@poezie.nl",
+        phone: "06-12345678",
+        instagram: "@mcalmere",
+        tiktok: "@mcalmere_tt",
+        reference: "50G-2026-0001",
+        submittedAt: "2026-11-20 01:00:00",
+    };
+
+    const html = generateSubmissionNotificationEmailHtml(params);
+    assert.ok(
+        html.includes("<title>Nieuwe Aanmelding: MC Almere</title>"),
+        "HTML title moet het nieuwe onderwerp 'Nieuwe Aanmelding: [Artiestennaam]' bevatten"
+    );
+});
+
+test("E-mail dispatch en database job gebruiken het nieuwe onderwerpformaat 'Nieuwe Aanmelding: [Artiestennaam]'", () => {
+    const emailCode = fs.readFileSync(path.join(process.cwd(), "src/lib/email.ts"), "utf-8");
+    const dbCode = fs.readFileSync(path.join(process.cwd(), "src/lib/db.ts"), "utf-8");
+
+    assert.ok(
+        emailCode.includes("`Nieuwe Aanmelding: ${params.artistName.replace"),
+        "src/lib/email.ts moet het nieuwe onderwerpformaat gebruiken bij verzending via Resend"
+    );
+    assert.ok(
+        dbCode.includes("`Nieuwe Aanmelding: ${payload.artistName}`"),
+        "src/lib/db.ts moet het nieuwe onderwerpformaat opslaan in notification_jobs"
+    );
+});
+
 // -----------------------------------------------------------------------------
 // 3. BESTANDSUPLOADS: SVG UITGESCHAKELD, CONTENT & MAGIC BYTE CONTROLE
 // -----------------------------------------------------------------------------

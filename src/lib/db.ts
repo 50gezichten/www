@@ -85,7 +85,7 @@ export async function createSubmission(payload: {
             submission_id: submissionId,
             reference,
             recipient: process.env.NOTIFICATION_EMAIL_TO || "50gezichten@gmail.com",
-            subject: `Nieuwe aanmelding 50 Gezichten 50 Gedichten: ${payload.artistName}`,
+            subject: `Nieuwe Aanmelding: ${payload.artistName}`,
             payload: {
                 ...payload,
                 reference,

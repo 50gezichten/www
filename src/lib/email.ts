@@ -96,7 +96,7 @@ Beheeromgeving: https://50gezichten.nl/admin
 export function generateSubmissionNotificationEmailHtml(
     params: SendSubmissionEmailParams
 ): string {
-    const rawSubject = `Nieuwe aanmelding 50 Gezichten 50 Gedichten: ${params.artistName}`;
+    const rawSubject = `Nieuwe Aanmelding: ${params.artistName}`;
     const safeTitle = escapeHtml(rawSubject.replace(/[\r\n]/g, " ").trim());
     const safeRef = escapeHtml(params.reference);
     const safeArtist = escapeHtml(params.artistName);
@@ -194,7 +194,7 @@ export async function sendSubmissionNotification(
 
     const recipient = process.env.NOTIFICATION_EMAIL_TO || "50gezichten@gmail.com";
     const sender = process.env.NOTIFICATION_EMAIL_FROM || "50 Gezichten <onboarding@resend.dev>";
-    const subject = `Nieuwe aanmelding 50 Gezichten 50 Gedichten: ${params.artistName.replace(/[\r\n]/g, " ").trim()}`;
+    const subject = `Nieuwe Aanmelding: ${params.artistName.replace(/[\r\n]/g, " ").trim()}`;
 
     const textContent = generateSubmissionNotificationEmailText(params);
     const htmlContent = generateSubmissionNotificationEmailHtml(params);

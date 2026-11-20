@@ -4,6 +4,12 @@ Alle belangrijke technische wijzigingen, herstellingen en toevoegingen aan het p
 
 ## [Unreleased] - 2026-11-20
 
+### Notificatiemail Onderwerp Aanpassing
+- **E-mail & Database Notificaties (`src/lib/email.ts` & `src/lib/db.ts`):**
+  - Onderwerp van de e-mailnotificaties voor nieuwe aanmeldingen aangepast naar het formaat: `Nieuwe Aanmelding: [Artiestennaam]`.
+  - Consistent doorgevoerd in de Resend e-mailverzending, de HTML e-mail title en de opslag van `notification_jobs` in Supabase PostgreSQL.
+  - Behoud van alle overige functionaliteit, lay-out, afzender, ontvanger en CRLF-injectiebeveiliging.
+
 ### Beveiligingsherstel: Aanmeldroute, E-mail Sanitization & Veilige Bestandsuploads
 - **Aanmeldroute (`/api/aanmelden`):**
   - Bezoekers ontvangen bij onverwachte server- of databasefouten uitsluitend een algemene, veilige foutmelding (`HTTP 500`).
