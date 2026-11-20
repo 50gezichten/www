@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { getSponsorPackages } from "@/lib/db";
 import SponsorManager from "./SponsorManager";
 
 export default async function SponsorsAdminPage() {
-    await auth();
+    await requireAdmin();
     const packages = await getSponsorPackages();
 
     return (

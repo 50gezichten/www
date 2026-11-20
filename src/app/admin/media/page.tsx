@@ -1,11 +1,11 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import fs from "fs";
 import path from "path";
 import MediaManager from "./MediaManager";
 import { supabaseAdmin, supabaseServer } from "@/lib/supabase-server";
 
 export default async function MediaAdminPage() {
-    await auth();
+    await requireAdmin();
 
     const mediaList: { url: string; name: string; size: number }[] = [];
 

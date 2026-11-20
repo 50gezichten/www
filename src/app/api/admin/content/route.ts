@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user || !session.user.isAdmin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user || !session.user.isAdmin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT() {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user || !session.user.isAdmin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

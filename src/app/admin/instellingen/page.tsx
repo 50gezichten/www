@@ -1,8 +1,8 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { isSupabaseAdminConfigured, isSupabaseConfigured } from "@/lib/supabase-server";
 
 export default async function InstellingenPage() {
-    await auth();
+    await requireAdmin();
 
     const dbConfigured = isSupabaseConfigured();
     const adminKeyConfigured = isSupabaseAdminConfigured();

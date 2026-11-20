@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { getSiteContent } from "@/lib/db";
 import TextEditorForm from "./TextEditorForm";
 
 export default async function TekstenPage() {
-    await auth();
+    await requireAdmin();
     const content = await getSiteContent(true); // load current draft/latest
 
     return (

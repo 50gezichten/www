@@ -104,10 +104,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
         async session({ session, token }) {
             if (session.user) {
+                const isStillAdmin = isAllowedAdmin(
+                    { id: token.githubId as string, login: token.username as string },
+                    (token.id as string) || (token.sub as string)
+                );
                 session.user.id = (token.id as string) || (token.sub as string);
                 session.user.githubId = token.githubId as string;
                 session.user.username = token.username as string;
-                session.user.isAdmin = !!token.isAdmin;
+                session.user.isAdmin = isStillAdmin && !!token.isAdmin;
             }
             return session;
         },

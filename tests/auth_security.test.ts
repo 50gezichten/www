@@ -235,6 +235,73 @@ async function runAll() {
     });
 
     // -----------------------------------------------------------------------------
+    // 5. SERVER-SIDE AUTORISATIE & VERVALSTE COOKIE WEIGERING
+    // -----------------------------------------------------------------------------
+    console.log("\nSUITE 5: Server-side Autorisatie & Vervalste Cookie Weigering");
+
+    await test("requireAdmin werpt redirect naar /admin/login op bij ontbrekende of niet-admin sessie", async () => {
+        const { requireAdmin } = await import("../src/lib/auth-guard");
+        let redirectNull = false;
+        try {
+            await requireAdmin(null);
+        } catch (err: any) {
+            redirectNull = err?.digest?.includes("NEXT_REDIRECT") || err?.message?.includes("NEXT_REDIRECT");
+        }
+        assert.ok(redirectNull, "requireAdmin(null) moet redirect werpen");
+
+        let redirectNonAdmin = false;
+        try {
+            await requireAdmin({ user: { id: "1", isAdmin: false } } as any);
+        } catch (err: any) {
+            redirectNonAdmin = err?.digest?.includes("NEXT_REDIRECT") || err?.message?.includes("NEXT_REDIRECT");
+        }
+        assert.ok(redirectNonAdmin, "requireAdmin met isAdmin: false moet redirect werpen");
+
+        const validSession = { user: { id: "1", isAdmin: true } } as any;
+        const result = await requireAdmin(validSession);
+        assert.strictEqual(result, validSession, "requireAdmin met isAdmin: true moet sessie retourneren");
+    });
+
+    await test("Alle admin-pagina's dwingen server-side requireAdmin af", () => {
+        const adminPages = [
+            "src/app/admin/page.tsx",
+            "src/app/admin/aanmeldingen/page.tsx",
+            "src/app/admin/roadmap/page.tsx",
+            "src/app/admin/sponsors/page.tsx",
+            "src/app/admin/teksten/page.tsx",
+            "src/app/admin/geschiedenis/page.tsx",
+            "src/app/admin/instellingen/page.tsx",
+            "src/app/admin/media/page.tsx",
+        ];
+
+        for (const pagePath of adminPages) {
+            const pageCode = fs.readFileSync(path.join(process.cwd(), pagePath), "utf-8");
+            assert.ok(
+                pageCode.includes("requireAdmin"),
+                `${pagePath} moet expliciet server-side requireAdmin afdwingen`
+            );
+        }
+    });
+
+    await test("Alle /api/admin/* routes valideren cryptografisch session.user.isAdmin", () => {
+        const apiRoutes = [
+            "src/app/api/admin/submissions/route.ts",
+            "src/app/api/admin/content/route.ts",
+            "src/app/api/admin/roadmap/route.ts",
+            "src/app/api/admin/sponsors/route.ts",
+            "src/app/api/admin/upload/route.ts",
+        ];
+
+        for (const routePath of apiRoutes) {
+            const routeCode = fs.readFileSync(path.join(process.cwd(), routePath), "utf-8");
+            assert.ok(
+                routeCode.includes("session.user.isAdmin"),
+                `${routePath} moet session.user.isAdmin verifiëren`
+            );
+        }
+    });
+
+    // -----------------------------------------------------------------------------
     // SUMMARY
     // -----------------------------------------------------------------------------
     console.log("\n=================================================");

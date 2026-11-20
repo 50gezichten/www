@@ -1,8 +1,8 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { getAuditLogs } from "@/lib/db";
 
 export default async function GeschiedenisAdminPage() {
-    await auth();
+    await requireAdmin();
     const logs = await getAuditLogs();
 
     return (

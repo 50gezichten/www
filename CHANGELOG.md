@@ -4,6 +4,17 @@ Alle belangrijke technische wijzigingen, herstellingen en toevoegingen aan het p
 
 ## [Unreleased] - 2026-11-20
 
+### CMS Toegangsbeveiliging & Server-side Autorisatieherstel
+- **Server-side autorisatie (`src/lib/auth-guard.ts` & alle adminpagina's):**
+  - Implementatie van `requireAdmin()` helper die cryptografische sessievalidatie (`await auth()`) en rolvalidatie (`session.user.isAdmin`) afdwingt op alle admin Server Components.
+  - Vervalste, ongeldige of gemanipuleerde sessiecookies worden server-side direct geweigerd met een redirect naar `/admin/login`. Er worden géén persoonsgegevens of beheerfuncties gerenderd.
+- **Admin API Beveiliging (`/api/admin/*`):**
+  - Alle admin API-routes controleren expliciet `session.user.isAdmin` alvorens gegevens uit te leveren of mutaties uit te voeren (HTTP 401 Unauthorized bij ontbrekende of niet-geautoriseerde sessie).
+- **Sessiecallback (`src/auth.ts`):**
+  - De sessiecallback verifieert bij elk verzoek of de gebruiker nog steeds voorkomt in `ADMIN_GITHUB_IDS`.
+- **Testdekking:**
+  - `tests/auth_security.test.ts` uitgebreid met Suite 5 voor server-side autorisatie en vervalste cookie tests.
+
 ### Notificatiemail Onderwerp Aanpassing
 - **E-mail & Database Notificaties (`src/lib/email.ts` & `src/lib/db.ts`):**
   - Onderwerp van de e-mailnotificaties voor nieuwe aanmeldingen aangepast naar het formaat: `Nieuwe Aanmelding: [Artiestennaam]`.

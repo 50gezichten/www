@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { getSubmissions } from "@/lib/db";
 import SubmissionsManager from "./SubmissionsManager";
 
 export default async function AanmeldingenAdminPage() {
-    await auth();
+    await requireAdmin();
     const submissions = await getSubmissions();
 
     return (

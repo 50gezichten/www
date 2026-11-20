@@ -1,10 +1,10 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { getAuditLogs, getRoadmapItems, getSiteContent, getSponsorPackages, getSubmissions } from "@/lib/db";
 import Link from "next/link";
 import PublishBanner from "./PublishBanner";
 
 export default async function AdminDashboardPage() {
-    const session = await auth();
+    const session = await requireAdmin();
     const [submissions, content, roadmap, sponsors, logs] = await Promise.all([
         getSubmissions(),
         getSiteContent(),

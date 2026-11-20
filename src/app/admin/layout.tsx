@@ -17,9 +17,9 @@ export default async function AdminLayout({
     const session = await auth();
 
     // The login page renders without the sidebar
-    // However, layout wraps children, so we check if session exists
-    if (!session?.user) {
-        // If not logged in, children will be handled by middleware or login page
+    // However, layout wraps children, so we check if session exists and is admin
+    if (!session?.user || !session.user.isAdmin) {
+        // If not logged in, children will be handled by requireAdmin in each page or login page
         return <>{children}</>;
     }
 

@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/auth-guard";
 import { getRoadmapItems } from "@/lib/db";
 import RoadmapManager from "./RoadmapManager";
 
 export default async function RoadmapAdminPage() {
-    await auth();
+    await requireAdmin();
     const items = await getRoadmapItems();
 
     return (
