@@ -4,6 +4,26 @@ Alle belangrijke technische wijzigingen, herstellingen en toevoegingen aan het p
 
 ## [Unreleased] - 2026-11-20
 
+### Beveiligingsherstel: Aanmeldroute, E-mail Sanitization & Veilige Bestandsuploads
+- **Aanmeldroute (`/api/aanmelden`):**
+  - Bezoekers ontvangen bij onverwachte server- of databasefouten uitsluitend een algemene, veilige foutmelding (`HTTP 500`).
+  - Interne databasestructuur, RLS-beleidsfouten en stacktraces lekken niet meer naar de client.
+  - Technische foutinformatie wordt uitsluitend server-side gelogd. Er worden geen persoonsgegevens, tokens of API-sleutels gelogd in errorhandlers.
+  - Bestaande validatie, antispam (rate limiting en honeypot), databaseopslag en notificatietriggers zijn volledig behouden.
+- **HTML E-mail Sanitization (`src/lib/email.ts`):**
+  - Volledige bescherming tegen HTML-injectie en XSS in e-mailclients door strikte escaping van alle dynamische invoervelden (`escapeHtml`).
+  - Veilige sanitization van HTML-attributen (`escapeHtmlAttr`) en links (`mailto:` en `tel:` URI schemes) ter voorkoming van attribute breakouts.
+  - Social media handles (`@instagram`, `@tiktok`) gesanitized tegen script- en quote-injecties.
+  - E-mail lay-out, typografie en de plattetekstversie zijn exact behouden.
+- **Bestandsuploads & Contentvalidatie (`/api/admin/upload` & `src/lib/upload-security.ts`):**
+  - SVG-uploads zijn voorlopig expliciet uitgeschakeld om script- en XML-injectierisico's te neutraliseren.
+  - Uitsluitend JPEG, PNG en WebP worden geaccepteerd.
+  - Diepe contentvalidatie via magic bytes (`detectImageFormat`) controleert de daadwerkelijke bestandsinhoud voorafgaand aan opslag. Vermomde scripts of HTML-bestanden met een afbeeldingsuitgang worden direct geweigerd.
+  - Consistentiecontrole tussen extensie, client-MIME-type en de gedetecteerde afbeeldingsheader.
+  - Maximale bestandsgrootte van 5 MB en Supabase Storage-integratie behouden.
+- **Testdekking:**
+  - Nieuwe testsuite `tests/security_fixes.test.ts` toegevoegd met 19 geautomatiseerde validaties (foutafhandeling, XSS payloads, attribute breakouts, magic bytes, SVG weigering).
+
 ### Auth.js Beveiligingsherstel: Strikt Toegangsbeheer & Verwijderen Vaste Geheimen
 - **Standaardbeheerders fallback geëlimineerd:**
   - Vaste lijst `defaultAdminIds = ["278548191", "346629474", "265046697"]` in `src/auth.ts` volledig verwijderd.

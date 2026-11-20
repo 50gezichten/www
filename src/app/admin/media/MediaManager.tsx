@@ -50,7 +50,7 @@ export default function MediaManager({ initialMedia }: { initialMedia: MediaItem
                 <input
                     type="file"
                     id="media-upload"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/webp"
                     className="hidden"
                     onChange={(e) => {
                         if (e.target.files?.[0]) {
@@ -66,7 +66,7 @@ export default function MediaManager({ initialMedia }: { initialMedia: MediaItem
                         {uploading ? "Bezig met uploaden..." : "Klik om een nieuwe afbeelding te uploaden"}
                     </span>
                     <span className="text-xs text-black/50 mt-1 block">
-                        PNG, JPG, WebP of SVG (max. 5MB)
+                        PNG, JPG of WebP (max. 5MB)
                     </span>
                 </label>
             </div>

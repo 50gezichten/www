@@ -58,13 +58,16 @@ export async function POST(request: NextRequest) {
             message: "Aanmelding succesvol ontvangen en opgeslagen.",
         });
     } catch (error) {
-        const errorMsg =
-            error instanceof Error
-                ? error.message
-                : "Er is een serverfout opgetreden bij het verwerken van de aanmelding.";
-        console.error("[Aanmelden API Error]", errorMsg);
+        // Log technical error details strictly server-side without leaking personal data, tokens or secrets
+        const technicalDetails =
+            error instanceof Error ? error.stack || error.message : "Onbekende serverfout";
+        console.error("[Aanmelden Server Error]", technicalDetails);
+
+        // Return strictly a generic error message to visitors
         return NextResponse.json(
-            { error: errorMsg },
+            {
+                error: "Er is een onverwachte serverfout opgetreden bij het verwerken van de aanmelding. Probeer het later opnieuw.",
+            },
             { status: 500 }
         );
     }
