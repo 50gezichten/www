@@ -269,6 +269,19 @@ export default function HomePageClient({
         return idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
     }, "");
 
+    const [activeRoadmapId, setActiveRoadmapId] = useState<string | null>(null);
+    const [hoveredRoadmapId, setHoveredRoadmapId] = useState<string | null>(null);
+
+    const activeId = activeRoadmapId || hoveredRoadmapId;
+    const activeRoadmapIndex = roadmapItems.findIndex(
+        (i) => (i.id || i.title) === activeId
+    );
+    const activeRoadmapItem =
+        activeRoadmapIndex >= 0 ? roadmapItems[activeRoadmapIndex] : null;
+    const activeRoadmapPoint =
+        activeRoadmapIndex >= 0 ? desktopPoints[activeRoadmapIndex] : null;
+    const isActiveTop = activeRoadmapIndex >= 0 && activeRoadmapIndex % 2 === 0;
+
     return (
         <TooltipProvider delayDuration={0}>
             <main className="min-h-screen bg-white overflow-x-hidden">
@@ -428,122 +441,215 @@ export default function HomePageClient({
                 </section>
 
                 {/* Roadmap Section */}
-                <section id="roadmap" className="py-16 md:py-24 px-4 bg-black/[0.02] scroll-mt-16">
+                <section id="roadmap" className="py-16 md:py-24 px-4 bg-black/[0.02] scroll-mt-16" onClick={() => setActiveRoadmapId(null)}>
                     <div className="max-w-6xl mx-auto">
-                        <h2 className="font-marker text-4xl md:text-5xl lg:text-6xl text-center mb-12 md:mb-20">
+                        <h2 className="font-marker text-4xl md:text-5xl lg:text-6xl text-center mb-2">
                             Roadmap
                         </h2>
+                        <p className="text-center text-sm md:text-base text-black/60 font-handwritten mb-10 md:mb-16">
+                            Beweeg over de punten of klik op een titel om de fase-toelichting te lezen
+                        </p>
 
-                        {/* Desktop Roadmap - Zigzag Pattern */}
-                        <div className="hidden lg:block">
-                            <div className="relative mx-auto w-full max-w-[1200px] h-[300px]">
+                        {/* Desktop & Tablet Roadmap - Zigzag Pad (schermen >= 768px) */}
+                        <div className="hidden md:block">
+                            <div className="relative mx-auto w-full max-w-[1200px] py-4 select-none">
                                 <svg
-                                    className="absolute inset-0 w-full h-full overflow-visible"
-                                    viewBox="0 -40 1200 300"
+                                    className="w-full h-auto overflow-visible"
+                                    viewBox="0 -50 1200 320"
                                     preserveAspectRatio="xMidYMid meet"
                                 >
+                                    {/* De verbindende stippellijn van het pad */}
                                     <path
                                         d={svgPathD}
                                         fill="none"
-                                        stroke="rgba(0,0,0,0.15)"
-                                        strokeWidth="2"
-                                        strokeDasharray="8 4"
+                                        stroke="rgba(0,0,0,0.18)"
+                                        strokeWidth="2.5"
+                                        strokeDasharray="8 5"
                                     />
 
                                     {roadmapItems.map((item, index) => {
                                         const point = desktopPoints[index] || { x: 75, y: 40 };
                                         const isTop = index % 2 === 0;
+                                        const itemId = item.id || item.title;
+                                        const isCurrent = activeId === itemId;
 
                                         return (
-                                            <Tooltip key={item.id || item.title}>
-                                                <TooltipTrigger asChild>
-                                                    <g
-                                                        className="cursor-pointer transition-all duration-200"
-                                                        style={{ transformBox: "fill-box", transformOrigin: "center" }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.transform = "scale(1.1)";
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.transform = "scale(1)";
-                                                        }}
-                                                    >
-                                                        <circle
-                                                            cx={point.x}
-                                                            cy={point.y}
-                                                            r="10"
-                                                            fill={item.active ? "black" : "white"}
-                                                            stroke="black"
-                                                            strokeWidth="3"
-                                                        />
+                                            <g
+                                                key={itemId}
+                                                className="cursor-pointer group"
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-label={`${item.title}: klik of beweeg voor toelichting`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveRoadmapId((prev) => (prev === itemId ? null : itemId));
+                                                }}
+                                                onMouseEnter={() => setHoveredRoadmapId(itemId)}
+                                                onMouseLeave={() => setHoveredRoadmapId(null)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        setActiveRoadmapId((prev) => (prev === itemId ? null : itemId));
+                                                    }
+                                                }}
+                                            >
+                                                {/* Subtiele ring om de actieve fase */}
+                                                {item.active && (
+                                                    <circle
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        r="18"
+                                                        fill="none"
+                                                        stroke="black"
+                                                        strokeWidth="1.5"
+                                                        strokeDasharray="4 2"
+                                                        className="opacity-60"
+                                                    />
+                                                )}
 
-                                                        <text
-                                                            x={point.x}
-                                                            y={isTop ? point.y - 36 : point.y + 46}
-                                                            textAnchor="middle"
-                                                            className="font-marker"
-                                                            style={{
-                                                                fontSize: "19px",
-                                                                fill: "black",
-                                                            }}
-                                                        >
-                                                            {item.title}
-                                                        </text>
-                                                    </g>
-                                                </TooltipTrigger>
+                                                {/* Punt van de fase */}
+                                                <circle
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={isCurrent ? 13 : 10}
+                                                    fill={item.active ? "black" : "white"}
+                                                    stroke="black"
+                                                    strokeWidth="3"
+                                                    className="transition-all duration-200 group-hover:scale-125"
+                                                    style={{ transformOrigin: `${point.x}px ${point.y}px` }}
+                                                />
 
-                                                <TooltipContent>
-                                                    <div className="max-w-xs text-left">
-                                                        <p className="font-semibold">{item.title}</p>
-                                                        <p className="mt-1 text-sm">{item.description}</p>
-                                                        <p className="mt-2 text-xs opacity-80">{item.duration}</p>
-                                                    </div>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                {/* Titel van de fase */}
+                                                <text
+                                                    x={point.x}
+                                                    y={isTop ? point.y - 36 : point.y + 46}
+                                                    textAnchor="middle"
+                                                    className="font-marker transition-all duration-200 group-hover:fill-black/80"
+                                                    style={{
+                                                        fontSize: isCurrent ? "21px" : "19px",
+                                                        fill: isCurrent ? "black" : "rgba(0,0,0,0.85)",
+                                                        textDecoration: isCurrent ? "underline" : "none",
+                                                    }}
+                                                >
+                                                    {item.title}
+                                                </text>
+                                            </g>
                                         );
                                     })}
                                 </svg>
+
+                                {/* Popover-kaartje bij hover of klik op een fase */}
+                                {activeRoadmapItem && activeRoadmapPoint && (
+                                    <div
+                                        className="absolute z-30 pointer-events-auto transition-all duration-200"
+                                        style={{
+                                            left: `${(activeRoadmapPoint.x / 1200) * 100}%`,
+                                            top: isActiveTop
+                                                ? `${((activeRoadmapPoint.y + 25) / 320) * 100}%`
+                                                : `${((activeRoadmapPoint.y - 25) / 320) * 100}%`,
+                                            transform: `translate(${
+                                                activeRoadmapIndex <= 1
+                                                    ? "-15%"
+                                                    : activeRoadmapIndex >= roadmapItems.length - 2
+                                                    ? "-85%"
+                                                    : "-50%"
+                                            }, ${isActiveTop ? "12px" : "calc(-100% - 12px)"})`,
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="bg-black text-white p-4 rounded-2xl shadow-2xl max-w-xs sm:max-w-sm border border-white/20 relative animate-in fade-in zoom-in-95 duration-150">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveRoadmapId(null);
+                                                    setHoveredRoadmapId(null);
+                                                }}
+                                                className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-white/70 hover:text-white transition"
+                                                aria-label="Sluit toelichting"
+                                            >
+                                                ✕
+                                            </button>
+                                            <div className="flex items-center gap-2 mb-1.5 pr-6">
+                                                <h4 className="font-marker text-lg text-white">
+                                                    {activeRoadmapItem.title}
+                                                </h4>
+                                                {activeRoadmapItem.active && (
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider bg-white text-black px-2 py-0.5 rounded-full">
+                                                        Nu bezig
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-white/90 leading-relaxed">
+                                                {activeRoadmapItem.description}
+                                            </p>
+                                            <p className="mt-2 text-[11px] text-white/60 italic font-medium">
+                                                {activeRoadmapItem.duration}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Tablet Roadmap */}
-                        <div className="hidden md:block lg:hidden">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-                                {roadmapItems.map((item) => (
-                                    <div key={item.id || item.title} className="text-center p-4 bg-white/50 rounded-xl border border-black/5">
-                                        <div
-                                            className={`w-6 h-6 mx-auto rounded-full border-[3px] mb-3 ${
-                                                item.active ? "bg-black border-black" : "bg-white border-black"
-                                            }`}
-                                        />
-                                        <h3 className="font-marker text-lg mb-1">{item.title}</h3>
-                                        <p className="text-xs text-black/70 mb-1">{item.description}</p>
-                                        <p className="text-[11px] text-black/50 italic">{item.duration}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        {/* Mobile Roadmap - Verticale pad-lijn (schermen < 768px) */}
+                        <div className="md:hidden space-y-4 max-w-md mx-auto">
+                            {roadmapItems.map((item, index) => {
+                                const itemId = item.id || item.title;
+                                const isExpanded = activeRoadmapId === itemId;
 
-                        {/* Mobile Roadmap */}
-                        <div className="md:hidden space-y-6">
-                            {roadmapItems.map((item, index) => (
-                                <div key={item.id || item.title} className="flex items-start gap-4">
-                                    <div className="flex flex-col items-center">
-                                        <div
-                                            className={`w-4 h-4 rounded-full border-[3px] flex-shrink-0 ${
-                                                item.active ? "bg-black border-black" : "bg-white border-black"
-                                            }`}
-                                        />
-                                        {index < roadmapItems.length - 1 && (
-                                            <div className="w-0.5 h-full min-h-[60px] bg-black/20 mt-1" />
-                                        )}
+                                return (
+                                    <div key={itemId} className="flex items-start gap-4 group">
+                                        <div className="flex flex-col items-center">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveRoadmapId((prev) => (prev === itemId ? null : itemId));
+                                                }}
+                                                className={`w-5 h-5 rounded-full border-[3px] flex-shrink-0 transition-transform duration-200 mt-0.5 ${
+                                                    item.active
+                                                        ? "bg-black border-black ring-4 ring-black/10 scale-110"
+                                                        : "bg-white border-black hover:scale-110"
+                                                }`}
+                                                aria-label={`${item.title}: klik voor toelichting`}
+                                            />
+                                            {index < roadmapItems.length - 1 && (
+                                                <div className="w-0.5 h-full min-h-[50px] bg-black/20 my-1 border-l border-dashed border-black/40" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 pb-4">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveRoadmapId((prev) => (prev === itemId ? null : itemId));
+                                                }}
+                                                className="text-left w-full group-hover:opacity-85 transition"
+                                            >
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <h3 className="font-marker text-lg leading-tight text-black">
+                                                        {item.title}
+                                                    </h3>
+                                                    <span className="text-xs text-black/50 font-mono">
+                                                        {isExpanded ? "▲" : "▼"}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-black/50 italic mt-0.5">{item.duration}</p>
+                                            </button>
+                                            {isExpanded && (
+                                                <div className="mt-2.5 p-3.5 bg-black text-white rounded-xl text-xs leading-relaxed shadow-lg animate-in fade-in duration-200">
+                                                    <p className="text-white/90">{item.description}</p>
+                                                    {item.active && (
+                                                        <span className="inline-block mt-2 text-[10px] uppercase font-bold bg-white text-black px-2 py-0.5 rounded">
+                                                            Nu bezig
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex-1 pb-2">
-                                        <h3 className="font-handwritten text-xl mb-1">{item.title}</h3>
-                                        <p className="text-sm text-black/70 mb-1">{item.description}</p>
-                                        <p className="text-xs text-black/50 italic">{item.duration}</p>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </section>
