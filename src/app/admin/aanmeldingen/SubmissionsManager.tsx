@@ -12,6 +12,7 @@ export default function SubmissionsManager({
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [retryingId, setRetryingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<string | null>(null);
 
     const filtered = submissions.filter((s) => {
@@ -29,6 +30,31 @@ export default function SubmissionsManager({
 
         return matchesQuery && matchesStatus;
     });
+
+    const handleDeleteSubmission = async (submissionId: string, artistName: string) => {
+        if (!confirm(`Weet je zeker dat je de testaanmelding van "${artistName}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) {
+            return;
+        }
+
+        setDeletingId(submissionId);
+        setFeedback(null);
+        try {
+            const res = await fetch(`/api/admin/submissions?id=${submissionId}`, {
+                method: "DELETE",
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setFeedback(`✓ Aanmelding van ${artistName} succesvol verwijderd.`);
+                setSubmissions((prev) => prev.filter((s) => s.id !== submissionId));
+            } else {
+                setFeedback(`Verwijderen mislukt: ${data.error || "Onbekende fout"}`);
+            }
+        } catch {
+            setFeedback("Netwerkfout bij verwijderen.");
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     const handleRetryNotification = async (submissionId: string) => {
         setRetryingId(submissionId);
@@ -160,15 +186,25 @@ export default function SubmissionsManager({
                                             )}
                                         </td>
                                         <td className="py-3.5 px-4 text-right">
-                                            {sub.email_notification_status === "failed" && (
+                                            <div className="flex items-center justify-end gap-2">
+                                                {sub.email_notification_status === "failed" && (
+                                                    <button
+                                                        onClick={() => handleRetryNotification(sub.id)}
+                                                        disabled={retryingId === sub.id}
+                                                        className="px-2.5 py-1 bg-black text-white rounded text-xs font-semibold hover:bg-black/80 transition disabled:opacity-50"
+                                                    >
+                                                        {retryingId === sub.id ? "Bezig..." : "Opnieuw e-mailen"}
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={() => handleRetryNotification(sub.id)}
-                                                    disabled={retryingId === sub.id}
-                                                    className="px-2.5 py-1 bg-black text-white rounded text-xs font-semibold hover:bg-black/80 transition disabled:opacity-50"
+                                                    onClick={() => handleDeleteSubmission(sub.id, sub.artist_name)}
+                                                    disabled={deletingId === sub.id}
+                                                    className="px-2.5 py-1 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded text-xs font-semibold transition disabled:opacity-50"
+                                                    title="Aanmelding definitief verwijderen"
                                                 >
-                                                    {retryingId === sub.id ? "Bezig..." : "Opnieuw e-mailen"}
+                                                    {deletingId === sub.id ? "Wissen..." : "Verwijderen"}
                                                 </button>
-                                            )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

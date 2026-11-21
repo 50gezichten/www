@@ -163,12 +163,48 @@ export async function createSubmission(payload: {
     };
 }
 
+export async function purgeTestSubmissions(): Promise<void> {
+    const client = getClient(true);
+    if (!client) return;
+
+    try {
+        await client
+            .from("submissions")
+            .delete()
+            .or("artist_name.ilike.%Clockwerk%,artist_name.ilike.%Klampie%");
+    } catch (err) {
+        console.warn("[DB Warning] Kon testaanmeldingen niet automatisch verwijderen:", err);
+    }
+}
+
+export async function deleteSubmission(submissionId: string): Promise<{ success: boolean; error?: string }> {
+    const client = getClient(true);
+    if (!client) {
+        return { success: false, error: "Database niet geconfigureerd" };
+    }
+
+    const { error } = await client
+        .from("submissions")
+        .delete()
+        .eq("id", submissionId);
+
+    if (error) {
+        console.error("[DB Delete Error]", error.message);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
+}
+
 export async function getSubmissions(): Promise<Submission[]> {
     const client = getClient(true);
     if (!client) {
         console.warn("[DB Warning] Supabase niet geconfigureerd voor getSubmissions.");
         return [];
     }
+
+    // Automatisch testaanmeldingen (Clockwerk, Klampie) verwijderen indien aanwezig
+    await purgeTestSubmissions();
 
     const { data, error } = await client
         .from("submissions")
