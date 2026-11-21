@@ -31,9 +31,7 @@ export function validateSubmission(data: Record<string, unknown>): ValidationRes
     // 3. Email
     const rawEmail = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-    if (!rawEmail) {
-        errors.email = "E-mailadres is verplicht";
-    } else if (!emailRegex.test(rawEmail) || rawEmail.length > 150) {
+    if (!rawEmail || !emailRegex.test(rawEmail) || rawEmail.length > 150) {
         errors.email = "Voer een geldig e-mailadres in";
     }
 
@@ -41,10 +39,8 @@ export function validateSubmission(data: Record<string, unknown>): ValidationRes
     const rawPhone = typeof data.phone === "string" ? data.phone.trim() : "";
     // Allow Dutch and international formats: 06-12345678, +31 6 12345678, 0612345678, etc.
     const phoneDigits = rawPhone.replace(/\D/g, "");
-    if (!rawPhone) {
-        errors.phone = "Telefoonnummer is verplicht";
-    } else if (phoneDigits.length < 8 || phoneDigits.length > 15) {
-        errors.phone = "Voer een geldig telefoonnummer in (minimaal 8 cijfers)";
+    if (!rawPhone || phoneDigits.length < 8 || phoneDigits.length > 15) {
+        errors.phone = "Voer een geldig telefoonnummer in";
     }
 
     // 5. Instagram (optional)

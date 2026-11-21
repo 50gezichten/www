@@ -48,6 +48,48 @@ export default function HomePageClient({
     });
     const [formStatus, setFormStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
     const [formFeedback, setFormFeedback] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+    const FIELD_ORDER = ["artistName", "email", "phone", "instagram", "tiktok"] as const;
+
+    const isFieldValid = (name: string, value: string): boolean => {
+        const trimmed = value.trim();
+        switch (name) {
+            case "artistName":
+                return trimmed.length >= 2 && trimmed.length <= 100;
+            case "email": {
+                const emailRegex =
+                    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+                return trimmed.length > 0 && trimmed.length <= 150 && emailRegex.test(trimmed.toLowerCase());
+            }
+            case "phone": {
+                const digits = trimmed.replace(/\D/g, "");
+                return trimmed.length > 0 && digits.length >= 8 && digits.length <= 15;
+            }
+            case "instagram":
+                return trimmed.length <= 100;
+            case "tiktok":
+                return trimmed.length <= 100;
+            default:
+                return true;
+        }
+    };
+
+    const handleInputChange = (field: keyof typeof formData, value: string) => {
+        setFormData((prev) => ({ ...prev, [field]: value }));
+        if (fieldErrors[field]) {
+            if (isFieldValid(field, value)) {
+                setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next[field];
+                    if (Object.keys(next).length <= 1) {
+                        setFormFeedback(null);
+                    }
+                    return next;
+                });
+            }
+        }
+    };
 
     const safePackages = sponsorPackages.length > 0 ? sponsorPackages : initialSponsorPackages;
     const activePackageIndex = currentPackage % safePackages.length;
@@ -68,17 +110,51 @@ export default function HomePageClient({
 
             const data = await res.json().catch(() => null);
 
-            if (!res.ok) {
-                const errMsg = data?.error || "Verzenden mislukt";
-                throw new Error(errMsg);
+            // 1. Validation error from server (400 with details)
+            if (res.status === 400 && data?.details) {
+                const details: Record<string, string> = data.details;
+                const errorKeys = Object.keys(details);
+                setFieldErrors(details);
+                setFormStatus("error");
+
+                if (errorKeys.length > 1) {
+                    setFormFeedback("Controleer je gegevens en corrigeer de gemarkeerde velden.");
+                } else {
+                    setFormFeedback(null);
+                }
+
+                const firstInvalid = FIELD_ORDER.find((f) => !!details[f]);
+                if (firstInvalid) {
+                    const el = document.getElementById(firstInvalid);
+                    if (el) {
+                        el.focus();
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                }
+                return;
             }
 
+            // 2. Technical server or request errors (non-ok responses)
+            if (!res.ok) {
+                setFieldErrors({});
+                setFormStatus("error");
+                setFormFeedback(
+                    res.status >= 500
+                        ? "Er is een onverwachte serverfout opgetreden bij het verwerken van de aanmelding. Probeer het later opnieuw."
+                        : (data?.error || "Er is een fout opgetreden bij het verwerken van de aanmelding. Probeer het later opnieuw.")
+                );
+                return;
+            }
+
+            // 3. Successful submission
+            setFieldErrors({});
             setFormStatus("sent");
             setFormFeedback(
                 data?.reference
                     ? `Aanmelding ontvangen! Referentie: ${data.reference}`
                     : "Aanmelding ontvangen!"
             );
+            // Only clear form fields on genuine success
             setFormData({
                 artistName: "",
                 email: "",
@@ -93,12 +169,11 @@ export default function HomePageClient({
                 setFormFeedback(null);
             }, 6000);
         } catch (error) {
-            console.error(error);
+            console.error("[Submission Network Error]", error);
+            setFieldErrors({});
             setFormStatus("error");
             setFormFeedback(
-                error instanceof Error
-                    ? error.message
-                    : "Er ging iets mis bij het verzenden. Controleer je gegevens en probeer het opnieuw."
+                "Er kan geen verbinding worden gemaakt met de server. Controleer je internetverbinding en probeer het opnieuw."
             );
         }
     };
@@ -478,7 +553,7 @@ export default function HomePageClient({
                             {content.aanmelden.description}
                         </p>
 
-                        <form onSubmit={handleSubmit} className="space-y-6 text-left">
+                        <form noValidate onSubmit={handleSubmit} className="space-y-6 text-left">
                             {/* Honeypot field for bot deterrence */}
                             <input
                                 type="text"
@@ -497,12 +572,24 @@ export default function HomePageClient({
                                 <input
                                     type="text"
                                     id="artistName"
+                                    name="artistName"
                                     required
+                                    aria-invalid={!!fieldErrors.artistName}
+                                    aria-describedby={fieldErrors.artistName ? "artistName-error" : undefined}
                                     value={formData.artistName}
-                                    onChange={(e) => setFormData({ ...formData, artistName: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 transition-all"
+                                    onChange={(e) => handleInputChange("artistName", e.target.value)}
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all ${
+                                        fieldErrors.artistName
+                                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                            : "border-black focus:ring-2 focus:ring-black/20"
+                                    }`}
                                     placeholder="Je artiestennaam"
                                 />
+                                {fieldErrors.artistName && (
+                                    <p id="artistName-error" className="text-red-600 text-sm mt-1.5 font-medium" role="alert">
+                                        {fieldErrors.artistName}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -512,12 +599,24 @@ export default function HomePageClient({
                                 <input
                                     type="email"
                                     id="email"
+                                    name="email"
                                     required
+                                    aria-invalid={!!fieldErrors.email}
+                                    aria-describedby={fieldErrors.email ? "email-error" : undefined}
                                     value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 transition-all"
+                                    onChange={(e) => handleInputChange("email", e.target.value)}
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all ${
+                                        fieldErrors.email
+                                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                            : "border-black focus:ring-2 focus:ring-black/20"
+                                    }`}
                                     placeholder="je@email.nl"
                                 />
+                                {fieldErrors.email && (
+                                    <p id="email-error" className="text-red-600 text-sm mt-1.5 font-medium" role="alert">
+                                        {fieldErrors.email}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -527,12 +626,24 @@ export default function HomePageClient({
                                 <input
                                     type="tel"
                                     id="phone"
+                                    name="phone"
                                     required
+                                    aria-invalid={!!fieldErrors.phone}
+                                    aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
                                     value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 transition-all"
+                                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all ${
+                                        fieldErrors.phone
+                                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                            : "border-black focus:ring-2 focus:ring-black/20"
+                                    }`}
                                     placeholder="06-12345678"
                                 />
+                                {fieldErrors.phone && (
+                                    <p id="phone-error" className="text-red-600 text-sm mt-1.5 font-medium" role="alert">
+                                        {fieldErrors.phone}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -542,11 +653,23 @@ export default function HomePageClient({
                                 <input
                                     type="text"
                                     id="instagram"
+                                    name="instagram"
+                                    aria-invalid={!!fieldErrors.instagram}
+                                    aria-describedby={fieldErrors.instagram ? "instagram-error" : undefined}
                                     value={formData.instagram}
-                                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 transition-all"
+                                    onChange={(e) => handleInputChange("instagram", e.target.value)}
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all ${
+                                        fieldErrors.instagram
+                                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                            : "border-black focus:ring-2 focus:ring-black/20"
+                                    }`}
                                     placeholder="@jouwhandle"
                                 />
+                                {fieldErrors.instagram && (
+                                    <p id="instagram-error" className="text-red-600 text-sm mt-1.5 font-medium" role="alert">
+                                        {fieldErrors.instagram}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -556,15 +679,29 @@ export default function HomePageClient({
                                 <input
                                     type="text"
                                     id="tiktok"
+                                    name="tiktok"
+                                    aria-invalid={!!fieldErrors.tiktok}
+                                    aria-describedby={fieldErrors.tiktok ? "tiktok-error" : undefined}
                                     value={formData.tiktok}
-                                    onChange={(e) => setFormData({ ...formData, tiktok: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 transition-all"
+                                    onChange={(e) => handleInputChange("tiktok", e.target.value)}
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all ${
+                                        fieldErrors.tiktok
+                                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                            : "border-black focus:ring-2 focus:ring-black/20"
+                                    }`}
                                     placeholder="@jouwhandle"
                                 />
+                                {fieldErrors.tiktok && (
+                                    <p id="tiktok-error" className="text-red-600 text-sm mt-1.5 font-medium" role="alert">
+                                        {fieldErrors.tiktok}
+                                    </p>
+                                )}
                             </div>
 
                             {formFeedback && (
                                 <div
+                                    id="form-feedback"
+                                    role="alert"
                                     className={`p-4 rounded-lg text-sm font-medium ${
                                         formStatus === "sent"
                                             ? "bg-black text-white"
@@ -581,12 +718,12 @@ export default function HomePageClient({
                                 className="w-full py-4 bg-black text-white font-medium rounded-lg hover:bg-black/80 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {formStatus === "sending"
-                                    ? "Verzenden..."
+                                    ? "VERZENDEN..."
                                     : formStatus === "sent"
-                                        ? "Verzonden!"
+                                        ? "VERZONDEN!"
                                         : formStatus === "error"
-                                            ? "Er ging iets mis"
-                                            : "Verstuur Aanmelding"}
+                                            ? "PROBEER OPNIEUW"
+                                            : "VERSTUUR AANMELDING"}
                             </button>
                         </form>
                     </div>

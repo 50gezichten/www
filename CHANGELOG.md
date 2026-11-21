@@ -2,6 +2,34 @@
 
 Alle belangrijke technische wijzigingen, herstellingen en toevoegingen aan het project worden in dit document vastgelegd volgens de richtlijnen van Masterprompt V2.
 
+## [Unreleased] - 2026-11-21
+
+### Formuliervalidatie en Foutmeldingen Verbeterd (UX & Toegankelijkheid)
+- **Veldspecifieke Foutmeldingen (`src/app/HomePageClient.tsx` & `src/lib/validation.ts`):**
+  - Foutmeldingen worden direct onder de desbetreffende invoervelden getoond op basis van `data.details` uit de API-respons.
+  - Server-side validatie in `src/lib/validation.ts` afgestemd op de gewenste meldingen:
+    - `artistName`: behoud van meldingen voor ontbrekende, te korte (< 2) of te lange (> 100) artiestennaam.
+    - `email`: eenduidige melding `"Voer een geldig e-mailadres in"`.
+    - `phone`: eenduidige melding `"Voer een geldig telefoonnummer in"`.
+    - `instagram` & `tiktok`: melding wanneer een ingevoerde waarde langer is dan 100 tekens.
+- **Visuele Feedback & Toegankelijkheid:**
+  - Ongeldige velden krijgen een duidelijke rode rand (`border-red-500` met aangepaste focusring).
+  - Volledige schermlezer-ondersteuning met `aria-invalid`, `aria-describedby` (gekoppeld aan `[field]-error`) en `role="alert"`.
+  - Formulier uitgerust met `noValidate` om native HTML5 tooltips te vervangen door consistente, toegankelijke custom foutindicaties.
+  - Automatische focus en soepele centrering (`scrollIntoView`) op het eerste ongeldige veld bij een validatiefout.
+  - Dynamische validatieverwijdering: zodra een gecorrigeerde waarde geldig is, verdwijnt de veldfout direct zonder overige actieve foutmeldingen te verbergen.
+- **Algemene Melding & Foutafhandeling:**
+  - Bij meerdere ongeldige velden toont het formulier: `"Controleer je gegevens en corrigeer de gemarkeerde velden."`.
+  - Bij technische serverfouten (HTTP 500) of netwerkfouten verschijnt een neutrale technische melding zonder stacktraces, gevoelige gegevens of verwijten aan de bezoeker.
+- **Verzendknop Teksten & Status:**
+  - Exacte knopteksten geïmplementeerd: `VERSTUUR AANMELDING` (standaard) -> `VERZENDEN...` (tijdens verwerking) -> `VERZONDEN!` (na succes) -> `PROBEER OPNIEUW` (na een fout).
+  - Verzendknop blijft na een fout direct bruikbaar en is alleen geblokkeerd tijdens actieve verzending.
+- **Behoud van Gegevens:**
+  - Formulierinvoer wordt uitsluitend gewist bij een daadwerkelijk succesvolle aanmelding. Bij validatie-, server- of verbindingsfouten blijven alle ingevulde gegevens bewaard.
+  - Invoercorrecties triggeren nooit automatische verzending; alleen een expliciete klik op de knop verstuurt het formulier.
+- **Testdekking:**
+  - Uitgebreide testsuite `tests/form_validation_ux.test.ts` toegevoegd met 34 geautomatiseerde tests (servervalidatie, API 400 responses, bot/honeypot guards, accessibility inspectie en volledige Playwright headless browser E2E tests).
+
 ## [Unreleased] - 2026-11-20
 
 ### CMS Toegangsbeveiliging & Server-side Autorisatieherstel
