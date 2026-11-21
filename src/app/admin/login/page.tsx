@@ -32,7 +32,11 @@ function LoginForm() {
             {error && (
                 <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-300 text-red-800 text-sm">
                     {error === "AccessDenied"
-                        ? "Toegang geweigerd: Jouw GitHub-account staat niet op de beheerders-allowlist."
+                        ? "Toegang geweigerd: Jouw GitHub-account staat niet op de beheerders-allowlist (ADMIN_GITHUB_IDS)."
+                        : error === "Configuration"
+                        ? "Configuratiefout: De authenticatie-instellingen (zoals AUTH_SECRET of GitHub OAuth-sleutels) ontbreken of zijn onjuist geconfigureerd in Vercel."
+                        : error === "OAuthSignin" || error === "OAuthCallback"
+                        ? "GitHub OAuth-fout: Er kon geen verbinding worden gemaakt met GitHub. Controleer de callback-URL en OAuth-gegevens."
                         : "Er is een authenticatiefout opgetreden. Probeer het opnieuw."}
                 </div>
             )}
