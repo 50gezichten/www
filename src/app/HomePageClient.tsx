@@ -493,6 +493,16 @@ export default function HomePageClient({
                                                     }
                                                 }}
                                             >
+                                                {/* Ruime hit-target rondom de cirkel voor soepele en stabiele muisinteractie */}
+                                                <circle
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r="26"
+                                                    fill="transparent"
+                                                    stroke="none"
+                                                    className="cursor-pointer"
+                                                />
+
                                                 {/* Subtiele ring om de actieve fase */}
                                                 {item.active && (
                                                     <circle
@@ -503,7 +513,7 @@ export default function HomePageClient({
                                                         stroke="black"
                                                         strokeWidth="1.5"
                                                         strokeDasharray="4 2"
-                                                        className="opacity-60"
+                                                        className="opacity-60 pointer-events-none"
                                                     />
                                                 )}
 
@@ -515,7 +525,7 @@ export default function HomePageClient({
                                                     fill={item.active ? "black" : "white"}
                                                     stroke="black"
                                                     strokeWidth="3"
-                                                    className="transition-all duration-200 group-hover:scale-125"
+                                                    className="transition-all duration-200 group-hover:scale-125 pointer-events-none"
                                                     style={{ transformOrigin: `${point.x}px ${point.y}px` }}
                                                 />
 
@@ -545,16 +555,18 @@ export default function HomePageClient({
                                         style={{
                                             left: `${(activeRoadmapPoint.x / 1200) * 100}%`,
                                             top: isActiveTop
-                                                ? `${((activeRoadmapPoint.y + 25) / 320) * 100}%`
-                                                : `${((activeRoadmapPoint.y - 25) / 320) * 100}%`,
+                                                ? `${((activeRoadmapPoint.y + 50 + 26) / 320) * 100}%`
+                                                : `${((activeRoadmapPoint.y + 50 - 26) / 320) * 100}%`,
                                             transform: `translate(${
                                                 activeRoadmapIndex <= 1
                                                     ? "-15%"
                                                     : activeRoadmapIndex >= roadmapItems.length - 2
                                                     ? "-85%"
                                                     : "-50%"
-                                            }, ${isActiveTop ? "12px" : "calc(-100% - 12px)"})`,
+                                            }, ${isActiveTop ? "10px" : "calc(-100% - 10px)"})`,
                                         }}
+                                        onMouseEnter={() => setHoveredRoadmapId(activeId)}
+                                        onMouseLeave={() => setHoveredRoadmapId(null)}
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <div className="bg-black text-white p-4 rounded-2xl shadow-2xl max-w-xs sm:max-w-sm border border-white/20 relative animate-in fade-in zoom-in-95 duration-150">

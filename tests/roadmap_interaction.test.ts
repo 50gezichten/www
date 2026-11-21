@@ -37,4 +37,14 @@ test("Roadmap: broncode verificatie & geen vakjes grid", () => {
         file.includes("border-dashed"),
         "Mobile pad moet een verbindende stippellijn hebben"
     );
+
+    // 5. Controleer dat hit-targets en popover-offset voor top items correct zijn
+    assert.ok(
+        file.includes("activeRoadmapPoint.y + 50 + 26"),
+        "Popover top offset moet rekening houden met de SVG viewBox minY (-50) en speling onder de bovenste cirkels"
+    );
+    assert.ok(
+        file.includes("r=\"26\""),
+        "Ruime hit-target cirkel moet aanwezig zijn voor stabiele hover op cirkels"
+    );
 });
