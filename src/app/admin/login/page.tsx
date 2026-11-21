@@ -3,12 +3,29 @@
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 function LoginForm() {
     const searchParams = useSearchParams();
     const error = searchParams.get("error");
     const [isLoading, setIsLoading] = useState(false);
+    const [missingConfig, setMissingConfig] = useState<string[] | null>(null);
+
+    useEffect(() => {
+        if (error === "Configuration") {
+            fetch("/api/auth/status")
+                .then((res) => res.json())
+                .then((data) => {
+                    const missing: string[] = [];
+                    if (!data.AUTH_SECRET) missing.push("AUTH_SECRET");
+                    if (!data.AUTH_GITHUB_ID) missing.push("AUTH_GITHUB_ID (of GITHUB_ID)");
+                    if (!data.AUTH_GITHUB_SECRET) missing.push("AUTH_GITHUB_SECRET (of GITHUB_SECRET)");
+                    if (!data.ADMIN_GITHUB_IDS) missing.push("ADMIN_GITHUB_IDS");
+                    setMissingConfig(missing);
+                })
+                .catch(() => {});
+        }
+    }, [error]);
 
     const handleLogin = () => {
         setIsLoading(true);
@@ -31,13 +48,29 @@ function LoginForm() {
 
             {error && (
                 <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-300 text-red-800 text-sm">
-                    {error === "AccessDenied"
-                        ? "Toegang geweigerd: Jouw GitHub-account staat niet op de beheerders-allowlist (ADMIN_GITHUB_IDS)."
-                        : error === "Configuration"
-                        ? "Configuratiefout: De authenticatie-instellingen (zoals AUTH_SECRET of GitHub OAuth-sleutels) ontbreken of zijn onjuist geconfigureerd in Vercel."
-                        : error === "OAuthSignin" || error === "OAuthCallback"
-                        ? "GitHub OAuth-fout: Er kon geen verbinding worden gemaakt met GitHub. Controleer de callback-URL en OAuth-gegevens."
-                        : "Er is een authenticatiefout opgetreden. Probeer het opnieuw."}
+                    {error === "AccessDenied" ? (
+                        "Toegang geweigerd: Jouw GitHub-account staat niet op de beheerders-allowlist (ADMIN_GITHUB_IDS)."
+                    ) : error === "Configuration" ? (
+                        <div className="space-y-2">
+                            <p className="font-semibold">
+                                Configuratiefout: De authenticatie-instellingen ontbreken of zijn onjuist geconfigureerd in Vercel.
+                            </p>
+                            {missingConfig && missingConfig.length > 0 && (
+                                <div className="text-xs mt-2 p-2.5 bg-red-100/70 rounded border border-red-200">
+                                    <p className="font-medium mb-1 text-red-900">Ontbrekende variabelen in Vercel:</p>
+                                    <ul className="list-disc pl-4 space-y-0.5 text-red-800">
+                                        {missingConfig.map((v) => (
+                                            <li key={v} className="font-mono">{v}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    ) : error === "OAuthSignin" || error === "OAuthCallback" ? (
+                        "GitHub OAuth-fout: Er kon geen verbinding worden gemaakt met GitHub. Controleer de callback-URL en OAuth-gegevens."
+                    ) : (
+                        "Er is een authenticatiefout opgetreden. Probeer het opnieuw."
+                    )}
                 </div>
             )}
 
