@@ -200,6 +200,33 @@ export default function TextEditorForm({ initialContent }: { initialContent: Sit
             {/* Support & Contact Section */}
             <div className="bg-white border border-black/10 rounded-xl p-6 shadow-sm space-y-4">
                 <h2 className="text-lg font-bold border-b border-black/10 pb-3">4. Support & Contact</h2>
+
+                {/* Support Visibility Switch */}
+                <div className="flex items-center justify-between p-4 bg-black/5 rounded-lg border border-black/10">
+                    <div>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-black">
+                            Support-sectie tonen op publieke website
+                        </span>
+                        <p className="text-xs text-black/60 mt-0.5">
+                            Wanneer uitgeschakeld worden de Support-sectie, introductietekst en sponsorkaarten verborgen op de homepage.
+                        </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+                        <input
+                            type="checkbox"
+                            checked={formData.support.enabled === true}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    support: { ...formData.support, enabled: e.target.checked },
+                                })
+                            }
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-black/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    </label>
+                </div>
+
                 <div>
                     <label className="block text-xs font-bold uppercase tracking-wider mb-2">Support Introductie</label>
                     <textarea

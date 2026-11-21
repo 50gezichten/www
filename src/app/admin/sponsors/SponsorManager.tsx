@@ -4,10 +4,47 @@ import { SponsorPackage } from "@/lib/types";
 import Image from "next/image";
 import { useState } from "react";
 
-export default function SponsorManager({ initialPackages }: { initialPackages: SponsorPackage[] }) {
+export default function SponsorManager({
+    initialPackages,
+    initialSupportEnabled = false,
+}: {
+    initialPackages: SponsorPackage[];
+    initialSupportEnabled?: boolean;
+}) {
     const [packages, setPackages] = useState<SponsorPackage[]>(initialPackages);
+    const [supportEnabled, setSupportEnabled] = useState(initialSupportEnabled);
+    const [togglingSupport, setTogglingSupport] = useState(false);
     const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState<string | null>(null);
+
+    const handleToggleSupport = async () => {
+        setTogglingSupport(true);
+        setFeedback(null);
+        const nextState = !supportEnabled;
+        try {
+            const res = await fetch("/api/admin/content", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled: nextState }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setSupportEnabled(nextState);
+                setFeedback(
+                    nextState
+                        ? "✓ Support-sectie en sponsorkaarten zijn nu zichtbaar op de homepage!"
+                        : "✓ Support-sectie en sponsorkaarten zijn nu verborgen op de homepage."
+                );
+                setTimeout(() => setFeedback(null), 4000);
+            } else {
+                setFeedback(`Fout: ${data.error || "Kon zichtbaarheid niet wijzigen"}`);
+            }
+        } catch {
+            setFeedback("Netwerkfout bij bijwerken zichtbaarheid.");
+        } finally {
+            setTogglingSupport(false);
+        }
+    };
 
     const handleSave = async (updated: SponsorPackage[]) => {
         setSaving(true);
@@ -113,6 +150,61 @@ export default function SponsorManager({ initialPackages }: { initialPackages: S
                     {feedback}
                 </div>
             )}
+
+            {/* Visibility Toggle Card */}
+            <div
+                className={`p-5 rounded-xl border transition-all ${
+                    supportEnabled
+                        ? "bg-emerald-50/70 border-emerald-200"
+                        : "bg-amber-50/70 border-amber-200"
+                }`}
+            >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <span
+                                className={`inline-block w-2.5 h-2.5 rounded-full ${
+                                    supportEnabled ? "bg-emerald-600" : "bg-amber-600"
+                                }`}
+                            />
+                            <h3 className="font-bold text-sm text-black">
+                                Zichtbaarheid van Support &amp; Sponsorkaarten op Website
+                            </h3>
+                            <span
+                                className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                                    supportEnabled
+                                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                        : "bg-amber-100 text-amber-800 border border-amber-300"
+                                }`}
+                            >
+                                {supportEnabled ? "ZICHTBAAR" : "VERBORGEN"}
+                            </span>
+                        </div>
+                        <p className="text-xs text-black/70">
+                            {supportEnabled
+                                ? "De Support-sectie, introductietekst en carrousel met sponsorkaarten zijn momenteel actief zichtbaar op de publieke homepage."
+                                : "De Support-sectie en sponsorkaarten zijn momenteel verborgen voor bezoekers. Klik op de knop om deze weer tevoorschijn te halen."}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleToggleSupport}
+                        disabled={togglingSupport}
+                        className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shrink-0 ${
+                            supportEnabled
+                                ? "bg-white text-red-700 border border-red-300 hover:bg-red-50"
+                                : "bg-black text-white hover:bg-black/80"
+                        } disabled:opacity-50 cursor-pointer`}
+                    >
+                        {togglingSupport
+                            ? "Bijwerken..."
+                            : supportEnabled
+                                ? "Verberg Support-sectie"
+                                : "Toon Support-sectie op website"}
+                    </button>
+                </div>
+            </div>
 
             <div className="flex justify-between items-center">
                 <span className="text-sm text-black/60 font-medium">Totaal {packages.length} pakketten</span>

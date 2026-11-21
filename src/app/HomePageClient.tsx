@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Tooltip,
     TooltipContent,
@@ -93,6 +93,7 @@ export default function HomePageClient({
 
     const safePackages = sponsorPackages.length > 0 ? sponsorPackages : initialSponsorPackages;
     const activePackageIndex = currentPackage % safePackages.length;
+    const showSupport = content.support?.enabled === true;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -291,11 +292,13 @@ export default function HomePageClient({
                                     Aanmelden
                                 </a>
                             </li>
-                            <li>
-                                <a href="#support" className="hover:underline underline-offset-4 transition-all">
-                                    Support
-                                </a>
-                            </li>
+                            {showSupport && (
+                                <li>
+                                    <a href="#support" className="hover:underline underline-offset-4 transition-all">
+                                        Support
+                                    </a>
+                                </li>
+                            )}
                             <li>
                                 <a href="#contact" className="hover:underline underline-offset-4 transition-all">
                                     Contact
@@ -365,15 +368,17 @@ export default function HomePageClient({
                                             Aanmelden
                                         </a>
                                     </li>
-                                    <li>
-                                        <a
-                                            href="#support"
-                                            onClick={() => setMobileMenuOpen(false)}
-                                            className="block rounded-lg px-3 py-2 hover:bg-black/5"
-                                        >
-                                            Support
-                                        </a>
-                                    </li>
+                                    {showSupport && (
+                                        <li>
+                                            <a
+                                                href="#support"
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                                            >
+                                                Support
+                                            </a>
+                                        </li>
+                                    )}
                                     <li>
                                         <a
                                             href="#contact"
@@ -730,144 +735,146 @@ export default function HomePageClient({
                 </section>
 
                 {/* Support Section */}
-                <section id="support" className="py-16 md:py-24 px-4 bg-black/[0.02] scroll-mt-16">
-                    <div className="max-w-4xl mx-auto">
-                        <h2 className="font-marker text-4xl md:text-5xl lg:text-6xl text-center mb-8 md:mb-12">
-                            {content.support.title}
-                        </h2>
-                        <p className="text-base md:text-lg text-black/80 text-center mb-12 max-w-2xl mx-auto leading-relaxed">
-                            {content.support.intro}
-                        </p>
+                {showSupport && (
+                    <section id="support" className="py-16 md:py-24 px-4 bg-black/[0.02] scroll-mt-16">
+                        <div className="max-w-4xl mx-auto">
+                            <h2 className="font-marker text-4xl md:text-5xl lg:text-6xl text-center mb-8 md:mb-12">
+                                {content.support.title}
+                            </h2>
+                            <p className="text-base md:text-lg text-black/80 text-center mb-12 max-w-2xl mx-auto leading-relaxed">
+                                {content.support.intro}
+                            </p>
 
-                        {/* Package Carousel */}
-                        <div className="relative mx-auto max-w-4xl">
-                            <div className="relative mx-auto w-full max-w-md">
-                                {/* Left Arrow */}
-                                <button
-                                    onClick={prevPackage}
-                                    className="hidden md:flex absolute top-[235px] right-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10 items-center justify-center"
-                                    aria-label="Vorig pakket"
-                                >
-                                    <svg
-                                        className="w-8 h-8 md:w-10 md:h-10 transform group-hover:-translate-x-1 transition-transform"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
+                            {/* Package Carousel */}
+                            <div className="relative mx-auto max-w-4xl">
+                                <div className="relative mx-auto w-full max-w-md">
+                                    {/* Left Arrow */}
+                                    <button
+                                        onClick={prevPackage}
+                                        className="hidden md:flex absolute top-[235px] right-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10 items-center justify-center"
+                                        aria-label="Vorig pakket"
                                     >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-
-                                {/* Right Arrow */}
-                                <button
-                                    onClick={nextPackage}
-                                    className="hidden md:flex absolute top-[235px] left-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10 items-center justify-center"
-                                    aria-label="Volgend pakket"
-                                >
-                                    <svg
-                                        className="w-8 h-8 md:w-10 md:h-10 transform group-hover:translate-x-1 transition-transform"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-
-                                {/* Package Card */}
-                                <div
-                                    className={`w-full touch-pan-y select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-                                    onPointerDown={handlePointerDown}
-                                    onPointerMove={handlePointerMove}
-                                    onPointerUp={handlePointerUp}
-                                    onPointerCancel={handlePointerCancel}
-                                >
-                                    <AnimatePresence mode="wait">
-                                        <motion.div
-                                            key={activePackageIndex}
-                                            initial={{ opacity: 0, y: 8 }}
-                                            animate={{
-                                                opacity: isDragging
-                                                    ? Math.max(0.45, 1 - Math.abs(dragOffset) / 260)
-                                                    : 1,
-                                                x: isDragging ? dragOffset : 0,
-                                                y: 0,
-                                                rotate: isDragging ? dragOffset / 40 : 0,
-                                                scale: isDragging ? 0.985 : 1,
-                                            }}
-                                            exit={{
-                                                opacity: 0,
-                                                y: -8,
-                                                x: isDragAnimating ? (direction > 0 ? -80 : 80) : 0,
-                                            }}
-                                            transition={{
-                                                type: isDragging ? "tween" : "spring",
-                                                duration: isDragging ? 0.02 : 0.25,
-                                                stiffness: 300,
-                                                damping: 30,
-                                            }}
-                                            style={{ touchAction: "pan-y" }}
+                                        <svg
+                                            className="w-8 h-8 md:w-10 md:h-10 transform group-hover:-translate-x-1 transition-transform"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
                                         >
-                                            <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-8 shadow-lg">
-                                                <div className="w-full h-40 md:h-48 rounded-lg mb-6 overflow-hidden relative">
-                                                    <Image
-                                                        src={safePackages[activePackageIndex].image}
-                                                        alt={safePackages[activePackageIndex].title}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                </div>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
 
-                                                <h3 className="font-marker text-2xl md:text-3xl mb-2 text-center">
-                                                    {safePackages[activePackageIndex].title}
-                                                </h3>
-                                                <p className="text-xl md:text-2xl font-handwritten text-center mb-6 text-black/70">
-                                                    {safePackages[activePackageIndex].price}
-                                                </p>
+                                    {/* Right Arrow */}
+                                    <button
+                                        onClick={nextPackage}
+                                        className="hidden md:flex absolute top-[235px] left-[calc(100%+2rem)] -translate-y-1/2 p-3 md:p-4 hover:bg-black/5 rounded-full transition-all group z-10 items-center justify-center"
+                                        aria-label="Volgend pakket"
+                                    >
+                                        <svg
+                                            className="w-8 h-8 md:w-10 md:h-10 transform group-hover:translate-x-1 transition-transform"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
 
-                                                <ul className="space-y-3">
-                                                    {safePackages[activePackageIndex].benefits.map((benefit, idx) => (
-                                                        <li key={`benefit-${idx}`} className="flex items-start gap-3 text-sm md:text-base">
-                                                            <span className="text-black mt-1 flex-shrink-0">•</span>
-                                                            <span className="text-black/80">{benefit}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </motion.div>
-                                    </AnimatePresence>
-
-                                    {/* Dots indicator */}
-                                    <div className="flex justify-center gap-2 mt-6">
-                                        {safePackages.map((_, index) => (
-                                            <button
-                                                key={`dot-${index}`}
-                                                onClick={() => {
-                                                    setDirection(index > activePackageIndex ? 1 : -1);
-                                                    setCurrentPackage(index);
+                                    {/* Package Card */}
+                                    <div
+                                        className={`w-full touch-pan-y select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                                        onPointerDown={handlePointerDown}
+                                        onPointerMove={handlePointerMove}
+                                        onPointerUp={handlePointerUp}
+                                        onPointerCancel={handlePointerCancel}
+                                    >
+                                        <AnimatePresence mode="wait">
+                                            <motion.div
+                                                key={activePackageIndex}
+                                                initial={{ opacity: 0, y: 8 }}
+                                                animate={{
+                                                    opacity: isDragging
+                                                        ? Math.max(0.45, 1 - Math.abs(dragOffset) / 260)
+                                                        : 1,
+                                                    x: isDragging ? dragOffset : 0,
+                                                    y: 0,
+                                                    rotate: isDragging ? dragOffset / 40 : 0,
+                                                    scale: isDragging ? 0.985 : 1,
                                                 }}
-                                                className={`w-2 h-2 rounded-full transition-all ${
-                                                    index === activePackageIndex ? "bg-black w-6" : "bg-black/30"
-                                                }`}
-                                                aria-label={`Ga naar pakket ${index + 1}`}
-                                            />
-                                        ))}
+                                                exit={{
+                                                    opacity: 0,
+                                                    y: -8,
+                                                    x: isDragAnimating ? (direction > 0 ? -80 : 80) : 0,
+                                                }}
+                                                transition={{
+                                                    type: isDragging ? "tween" : "spring",
+                                                    duration: isDragging ? 0.02 : 0.25,
+                                                    stiffness: 300,
+                                                    damping: 30,
+                                                }}
+                                                style={{ touchAction: "pan-y" }}
+                                            >
+                                                <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-8 shadow-lg">
+                                                    <div className="w-full h-40 md:h-48 rounded-lg mb-6 overflow-hidden relative">
+                                                        <Image
+                                                            src={safePackages[activePackageIndex].image}
+                                                            alt={safePackages[activePackageIndex].title}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+
+                                                    <h3 className="font-marker text-2xl md:text-3xl mb-2 text-center">
+                                                        {safePackages[activePackageIndex].title}
+                                                    </h3>
+                                                    <p className="text-xl md:text-2xl font-handwritten text-center mb-6 text-black/70">
+                                                        {safePackages[activePackageIndex].price}
+                                                    </p>
+
+                                                    <ul className="space-y-3">
+                                                        {safePackages[activePackageIndex].benefits.map((benefit, idx) => (
+                                                            <li key={`benefit-${idx}`} className="flex items-start gap-3 text-sm md:text-base">
+                                                                <span className="text-black mt-1 flex-shrink-0">•</span>
+                                                                <span className="text-black/80">{benefit}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </motion.div>
+                                        </AnimatePresence>
+
+                                        {/* Dots indicator */}
+                                        <div className="flex justify-center gap-2 mt-6">
+                                            {safePackages.map((_, index) => (
+                                                <button
+                                                    key={`dot-${index}`}
+                                                    onClick={() => {
+                                                        setDirection(index > activePackageIndex ? 1 : -1);
+                                                        setCurrentPackage(index);
+                                                    }}
+                                                    className={`w-2 h-2 rounded-full transition-all ${
+                                                        index === activePackageIndex ? "bg-black w-6" : "bg-black/30"
+                                                    }`}
+                                                    aria-label={`Ga naar pakket ${index + 1}`}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <p className="text-center mt-12 text-black/70 text-base md:text-lg">
-                            {content.support.custom_package_text}{" "}
-                            <a
-                                href={`mailto:${content.support.custom_package_email}`}
-                                className="underline hover:text-black transition-colors"
-                            >
-                                {content.support.custom_package_email}
-                            </a>
-                        </p>
-                    </div>
-                </section>
+                            <p className="text-center mt-12 text-black/70 text-base md:text-lg">
+                                {content.support.custom_package_text}{" "}
+                                <a
+                                    href={`mailto:${content.support.custom_package_email}`}
+                                    className="underline hover:text-black transition-colors"
+                                >
+                                    {content.support.custom_package_email}
+                                </a>
+                            </p>
+                        </div>
+                    </section>
+                )}
 
                 {/* Contact Section */}
                 <section id="contact" className="py-16 md:py-24 px-4 scroll-mt-16">

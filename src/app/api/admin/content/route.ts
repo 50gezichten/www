@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { getSiteContent, publishContent, updateDraftContent } from "@/lib/db";
+import { getSiteContent, publishContent, setSupportVisibility, updateDraftContent } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -47,6 +47,28 @@ export async function PUT() {
     } catch (err) {
         return NextResponse.json(
             { error: err instanceof Error ? err.message : "Fout bij publiceren" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PATCH(request: NextRequest) {
+    const session = await auth();
+    if (!session?.user || !session.user.isAdmin) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const body = await request.json();
+        const actor = session.user.username || session.user.name || "Admin";
+        if (typeof body.enabled === "boolean") {
+            const updated = await setSupportVisibility(body.enabled, actor);
+            return NextResponse.json({ ok: true, support: updated.support });
+        }
+        return NextResponse.json({ error: "Ongeldige status ontvangen" }, { status: 400 });
+    } catch (err) {
+        return NextResponse.json(
+            { error: err instanceof Error ? err.message : "Fout bij wijzigen zichtbaarheid" },
             { status: 500 }
         );
     }

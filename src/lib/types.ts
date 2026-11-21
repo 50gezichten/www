@@ -81,6 +81,7 @@ export interface SiteContent {
         intro: string;
         custom_package_text: string;
         custom_package_email: string;
+        enabled?: boolean;
     };
     contact: {
         title: string;

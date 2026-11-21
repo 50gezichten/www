@@ -4,6 +4,27 @@ Alle belangrijke technische wijzigingen, herstellingen en toevoegingen aan het p
 
 ## [Unreleased] - 2026-11-21
 
+### Support- en Sponsorsectie Zichtbaarheidsbeheer (Standaard Verborgen met CMS Toggle)
+- **Standaard Verborgen op Publieke Website (`src/app/HomePageClient.tsx` & `src/lib/default-data.ts`):**
+  - Het stukje 'SUPPORT' (`<section id="support">`) en haar sponsorkaarten zijn standaard verborgen op de publieke website.
+  - De 'Support'-navigatielink in de header (zowel desktop menu als mobiel menu) is conditioneel gemaakt en wordt niet getoond wanneer de sectie is uitgeschakeld.
+  - De overige secties (`#over-ons`, `#roadmap`, `#aanmelden`, `#contact`) en footer blijven 100% visueel en functioneel intact.
+- **CMS Beheeropties in het Dashboard:**
+  - **Sponsorkaarten Beheer (`/admin/sponsors` & `SponsorManager.tsx`):**
+    - Prominente statuskaart toegevoegd met actuele zichtbaarheid (`ZICHTBAAR` / `VERBORGEN`).
+    - Directe toggle-knop (`Toon Support-sectie op website` / `Verberg Support-sectie`) die via `PATCH /api/admin/content` direct de live- en conceptstatus bijwerkt.
+  - **Tekstbeheer (`/admin/teksten` & `TextEditorForm.tsx`):**
+    - Onder sectie "4. Support & Contact" een toggle-switch toegevoegd om de zichtbaarheid van de Support-sectie in concepten en publicaties te beheren.
+  - **Hoofddashboard (`/admin` & `src/app/admin/page.tsx`):**
+    - Sponsor-KPI kaart toont nu een dynamische badge met de actuele status (`Zichtbaar` / `Verborgen`).
+    - Snelle module link toont directe statusindicatie (`AAN` / `UIT`).
+- **Database & API Uitbreiding (`src/lib/db.ts` & `src/app/api/admin/content/route.ts`):**
+  - `SiteContent.support` uitgebreid met optioneel veld `enabled?: boolean` (standaard `false`).
+  - Functie `setSupportVisibility(enabled, actor)` toegevoegd voor directe persistente updates in Supabase PostgreSQL en logging in `audit_logs`.
+  - `PATCH /api/admin/content` endpoint geïmplementeerd met cryptografische admin-autorisatie (`session.user.isAdmin`).
+- **Testdekking:**
+  - Nieuwe testsuite `tests/support_visibility.test.ts` toegevoegd met 15 geautomatiseerde validaties (datamodel, default state, CMS UI-elementen, API-autorisatie en Playwright browser E2E tests).
+
 ### Formuliervalidatie en Foutmeldingen Verbeterd (UX & Toegankelijkheid)
 - **Veldspecifieke Foutmeldingen (`src/app/HomePageClient.tsx` & `src/lib/validation.ts`):**
   - Foutmeldingen worden direct onder de desbetreffende invoervelden getoond op basis van `data.details` uit de API-respons.

@@ -100,8 +100,23 @@ export default async function AdminDashboardPage() {
                     <span className="text-xs font-semibold text-black/50 uppercase tracking-wider block">
                         Sponsorpakketten
                     </span>
-                    <span className="text-3xl font-extrabold mt-2 block">{sponsors.length}</span>
-                    <span className="text-xs text-black/60 mt-1 block">actief in carrousel</span>
+                    <div className="flex items-baseline justify-between mt-2">
+                        <span className="text-3xl font-extrabold">{sponsors.length}</span>
+                        <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                content.support?.enabled === true
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-amber-100 text-amber-800"
+                            }`}
+                        >
+                            {content.support?.enabled === true ? "Zichtbaar" : "Verborgen"}
+                        </span>
+                    </div>
+                    <span className="text-xs text-black/60 mt-1 block">
+                        {content.support?.enabled === true
+                            ? "Actief getoond op website"
+                            : "Support-sectie staat uit"}
+                    </span>
                 </div>
             </div>
 
@@ -183,8 +198,15 @@ export default async function AdminDashboardPage() {
                                 href="/admin/sponsors"
                                 className="block p-3 rounded-lg border border-black/10 hover:border-black transition"
                             >
-                                <span className="font-semibold text-sm block">💎 Sponsorkaarten</span>
-                                <span className="text-xs text-black/60">Prijzen, voordelen en foto&apos;s beheren</span>
+                                <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-sm block">💎 Sponsorkaarten</span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                        content.support?.enabled === true ? "bg-emerald-100 text-emerald-800" : "bg-black/10 text-black/60"
+                                    }`}>
+                                        {content.support?.enabled === true ? "AAN" : "UIT"}
+                                    </span>
+                                </div>
+                                <span className="text-xs text-black/60">Zichtbaarheid, prijzen en voordelen beheren</span>
                             </Link>
                         </div>
                     </div>

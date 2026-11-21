@@ -269,14 +269,24 @@ export async function getSiteContent(previewDraft = false): Promise<SiteContent>
                     .order("version", { ascending: false })
                     .limit(1)
                     .maybeSingle();
-                if (pubData) return pubData as SiteContent;
+                if (pubData) {
+                    const pubContent = pubData as SiteContent;
+                    if (pubContent.support && typeof pubContent.support.enabled !== "boolean") {
+                        pubContent.support.enabled = false;
+                    }
+                    return pubContent;
+                }
             }
             return previewDraft
                 ? { ...initialSiteContent, status: "draft" }
                 : initialSiteContent;
         }
 
-        return data as SiteContent;
+        const siteData = data as SiteContent;
+        if (siteData.support && typeof siteData.support.enabled !== "boolean") {
+            siteData.support.enabled = false;
+        }
+        return siteData;
     } catch {
         return previewDraft ? { ...initialSiteContent, status: "draft" } : initialSiteContent;
     }
@@ -361,6 +371,63 @@ export async function publishContent(actor: string): Promise<SiteContent> {
         entity_id: "content-prod",
         actor_id: actor,
         details: `Versie ${publishedData.version} live gepubliceerd naar website`,
+    });
+
+    return publishedData;
+}
+
+export async function setSupportVisibility(
+    enabled: boolean,
+    actor: string
+): Promise<SiteContent> {
+    const client = getClient(true);
+    const now = new Date().toISOString();
+
+    const currentPublished = await getSiteContent(false);
+    const newVersion = (currentPublished.version || 1) + 1;
+
+    const updatedSupport = {
+        ...currentPublished.support,
+        enabled,
+    };
+
+    const publishedData: SiteContent = {
+        ...currentPublished,
+        id: "content-prod",
+        version: newVersion,
+        status: "published",
+        support: updatedSupport,
+        updated_at: now,
+        updated_by: actor,
+    };
+
+    if (client) {
+        const { error: pubError } = await client
+            .from("site_content")
+            .upsert(publishedData, { onConflict: "id" });
+
+        if (pubError) {
+            console.error("[DB Error] Fout bij bijwerken support-zichtbaarheid:", pubError.message);
+            throw new Error(`Fout bij opslaan in database: ${pubError.message}`);
+        }
+
+        // Also update draft to keep them in sync
+        const draftData: SiteContent = {
+            ...publishedData,
+            id: "content-draft",
+            status: "draft",
+        };
+        await client.from("site_content").upsert(draftData, { onConflict: "id" });
+    }
+
+    await addAuditLog({
+        action: enabled ? "ENABLE_SUPPORT_SECTION" : "DISABLE_SUPPORT_SECTION",
+        entity: "content",
+        entity_id: "support-section",
+        actor_id: actor,
+        details: enabled
+            ? "Support-sectie en sponsorkaarten ingeschakeld op website"
+            : "Support-sectie en sponsorkaarten verborgen op website",
     });
 
     return publishedData;

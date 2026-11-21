@@ -159,6 +159,7 @@ export const initialSiteContent: SiteContent = {
             "Als bedrijf uit Almere kun jij een belangrijke rol spelen in het behouden en versterken van de lokale cultuur. Door sponsor te worden van 50 Gezichten 50 Gedichten vereeuw je jouw naam in de danklijsten en draag je bij aan een cultureel erfgoedproject dat generaties zal inspireren.",
         custom_package_text: "Liever een op maat gemaakt pakket? Neem vooral contact met ons op door te mailen naar",
         custom_package_email: "50gezichten@gmail.com",
+        enabled: false,
     },
     contact: {
         title: "Contact",

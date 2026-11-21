@@ -268,14 +268,13 @@ async function runTests() {
             const hasOverOns = await page.locator("section#over-ons").isVisible();
             const hasRoadmap = await page.locator("section#roadmap").isVisible();
             const hasAanmelden = await page.locator("section#aanmelden").isVisible();
-            const hasSupport = await page.locator("section#support").isVisible();
             const hasContact = await page.locator("section#contact").isVisible();
             const hasFooter = await page.locator("footer").isVisible();
 
-            const allElementsOk = statusOk && hasHeroLogo && hasOverOns && hasRoadmap && hasAanmelden && hasSupport && hasContact && hasFooter;
+            const allElementsOk = statusOk && hasHeroLogo && hasOverOns && hasRoadmap && hasAanmelden && hasContact && hasFooter;
 
             report(
-                `Homepage op ${vp.width}px retourneert HTTP 200 en toont alle secties`,
+                `Homepage op ${vp.width}px retourneert HTTP 200 en toont alle actieve secties`,
                 allElementsOk,
                 `HTTP Status: ${response?.status()}`
             );
